@@ -15,7 +15,7 @@ const upload = multer({
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: async (req) => {
+  max: async (req: any) => {
     if (req.user?.claims?.sub) {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.planId === 'pro') return 5000;
@@ -99,6 +99,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching plans:', error);
       res.status(500).json({ message: 'Failed to fetch plans' });
+    }
+  });
+
+  // Admin only - Plan management
+  app.post('/api/admin/plans', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const planData = req.body;
+      const plan = await storage.createPlan(planData);
+      res.json(plan);
+    } catch (error) {
+      console.error('Error creating plan:', error);
+      res.status(500).json({ message: 'Failed to create plan' });
+    }
+  });
+
+  app.put('/api/admin/plans/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const planData = req.body;
+      const plan = await storage.updatePlan(req.params.id, planData);
+      res.json(plan);
+    } catch (error) {
+      console.error('Error updating plan:', error);
+      res.status(500).json({ message: 'Failed to update plan' });
+    }
+  });
+
+  app.delete('/api/admin/plans/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      await storage.deletePlan(req.params.id);
+      res.json({ message: 'Plan deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      res.status(500).json({ message: 'Failed to delete plan' });
+    }
+  });
+
+  // User plan selection
+  app.post('/api/user/select-plan', isAuthenticated, async (req: any, res) => {
+    try {
+      const { planId } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const plans = await storage.getPlans();
+      const selectedPlan = plans.find(p => p.id === planId);
+      if (!selectedPlan) {
+        return res.status(400).json({ message: 'Invalid plan selected' });
+      }
+
+      const user = await storage.upsertUser({
+        id: userId,
+        planId,
+        storageUsed: '0',
+        ...(req.user.claims.email && { email: req.user.claims.email }),
+        ...(req.user.claims.first_name && { firstName: req.user.claims.first_name }),
+        ...(req.user.claims.last_name && { lastName: req.user.claims.last_name }),
+        ...(req.user.claims.profile_image_url && { profileImageUrl: req.user.claims.profile_image_url }),
+      });
+
+      res.json(user);
+    } catch (error) {
+      console.error('Error selecting plan:', error);
+      res.status(500).json({ message: 'Failed to select plan' });
     }
   });
 

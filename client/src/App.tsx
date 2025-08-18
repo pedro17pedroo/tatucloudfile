@@ -9,14 +9,17 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import ApiDocs from "@/pages/api-docs";
+import PlanSelection from "@/pages/plan-selection";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, needsPlanSelection } = useAuth();
 
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
+      ) : needsPlanSelection ? (
+        <Route path="/" component={PlanSelection} />
       ) : (
         <>
           <Route path="/" component={Home} />

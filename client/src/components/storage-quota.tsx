@@ -3,11 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Cloud, Upload } from "lucide-react";
+import type { Plan } from "@shared/schema";
 
 export function StorageQuota() {
   const { user } = useAuth();
 
-  const { data: plans } = useQuery({
+  const { data: plans = [] } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
   });
 
@@ -25,14 +26,14 @@ export function StorageQuota() {
     );
   }
 
-  const currentPlan = plans.find((p: any) => p.id === user.planId);
-  const storageUsed = BigInt(user.storageUsed || '0');
-  const storageLimit = BigInt(currentPlan?.storageLimit || '0');
-  const usagePercentage = storageLimit > 0 ? Number((storageUsed * 100n) / storageLimit) : 0;
+  const currentPlan = plans.find((p) => p.id === user.planId);
+  const storageUsed = parseInt(user.storageUsed || '0');
+  const storageLimit = parseInt(currentPlan?.storageLimit || '0');
+  const usagePercentage = storageLimit > 0 ? (storageUsed * 100) / storageLimit : 0;
 
-  const formatBytes = (bytes: bigint) => {
+  const formatBytes = (bytes: number) => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let size = Number(bytes);
+    let size = bytes;
     let unitIndex = 0;
     
     while (size >= 1024 && unitIndex < units.length - 1) {

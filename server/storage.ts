@@ -30,6 +30,8 @@ export interface IStorage {
   // Plan operations
   getPlans(): Promise<Plan[]>;
   createPlan(plan: InsertPlan): Promise<Plan>;
+  updatePlan(id: string, plan: Partial<InsertPlan>): Promise<Plan>;
+  deletePlan(id: string): Promise<void>;
   
   // API Key operations
   createApiKey(userId: string, name: string): Promise<{ apiKey: ApiKey; rawKey: string }>;
@@ -82,6 +84,19 @@ export class DatabaseStorage implements IStorage {
   async createPlan(plan: InsertPlan): Promise<Plan> {
     const [newPlan] = await db.insert(plans).values(plan).returning();
     return newPlan;
+  }
+
+  async updatePlan(id: string, planData: Partial<InsertPlan>): Promise<Plan> {
+    const [updatedPlan] = await db
+      .update(plans)
+      .set(planData)
+      .where(eq(plans.id, id))
+      .returning();
+    return updatedPlan;
+  }
+
+  async deletePlan(id: string): Promise<void> {
+    await db.delete(plans).where(eq(plans.id, id));
   }
 
   async createApiKey(userId: string, name: string): Promise<{ apiKey: ApiKey; rawKey: string }> {
