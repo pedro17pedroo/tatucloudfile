@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 20%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(0, 0%, 20%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 20%);
+  --primary: hsl(358, 75%, 52%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(0, 0%, 17%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(0, 0%, 96%);
+  --muted-foreground: hsl(0, 0%, 20%);
+  --accent: hsl(207, 90%, 54%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 89%);
+  --input: hsl(0, 0%, 96%);
+  --ring: hsl(358, 75%, 52%);
+  --chart-1: hsl(358, 75%, 52%);
+  --chart-2: hsl(120, 100%, 31%);
+  --chart-3: hsl(45, 93%, 56%);
+  --chart-4: hsl(147, 78%, 42%);
+  --chart-5: hsl(341, 75%, 51%);
+  --sidebar: hsl(0, 0%, 96%);
+  --sidebar-foreground: hsl(0, 0%, 20%);
+  --sidebar-primary: hsl(358, 75%, 52%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(207, 90%, 54%);
+  --sidebar-accent-foreground: hsl(0, 0%, 100%);
+  --sidebar-border: hsl(0, 0%, 89%);
+  --sidebar-ring: hsl(358, 75%, 52%);
+  --font-sans: 'Open Sans', 'Roboto', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.5rem;
+  
+  /* MEGA Brand Colors */
+  --mega-red: hsl(358, 75%, 52%);
+  --mega-dark: hsl(0, 0%, 17%);
+  --mega-light: hsl(0, 0%, 96%);
+  --mega-text: hsl(0, 0%, 20%);
+  --mega-success: hsl(120, 100%, 31%);
+  --mega-accent: hsl(207, 90%, 54%);
+}
+
+.dark {
+  --background: hsl(0, 0%, 9%);
+  --foreground: hsl(0, 0%, 91%);
+  --card: hsl(0, 0%, 9%);
+  --card-foreground: hsl(0, 0%, 91%);
+  --popover: hsl(0, 0%, 9%);
+  --popover-foreground: hsl(0, 0%, 91%);
+  --primary: hsl(358, 75%, 52%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(0, 0%, 15%);
+  --secondary-foreground: hsl(0, 0%, 91%);
+  --muted: hsl(0, 0%, 15%);
+  --muted-foreground: hsl(0, 0%, 64%);
+  --accent: hsl(207, 90%, 54%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 15%);
+  --input: hsl(0, 0%, 15%);
+  --ring: hsl(358, 75%, 52%);
+  --chart-1: hsl(358, 75%, 52%);
+  --chart-2: hsl(120, 100%, 31%);
+  --chart-3: hsl(45, 93%, 56%);
+  --chart-4: hsl(147, 78%, 42%);
+  --chart-5: hsl(341, 75%, 51%);
+  --sidebar: hsl(0, 0%, 9%);
+  --sidebar-foreground: hsl(0, 0%, 91%);
+  --sidebar-primary: hsl(358, 75%, 52%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(207, 90%, 54%);
+  --sidebar-accent-foreground: hsl(0, 0%, 100%);
+  --sidebar-border: hsl(0, 0%, 15%);
+  --sidebar-ring: hsl(358, 75%, 52%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-mega-red {
+    color: var(--mega-red);
+  }
+  
+  .bg-mega-red {
+    background-color: var(--mega-red);
+  }
+  
+  .text-mega-dark {
+    color: var(--mega-dark);
+  }
+  
+  .bg-mega-dark {
+    background-color: var(--mega-dark);
+  }
+  
+  .text-mega-light {
+    color: var(--mega-light);
+  }
+  
+  .bg-mega-light {
+    background-color: var(--mega-light);
+  }
+  
+  .text-mega-text {
+    color: var(--mega-text);
+  }
+  
+  .text-mega-success {
+    color: var(--mega-success);
+  }
+  
+  .bg-mega-success {
+    background-color: var(--mega-success);
+  }
+  
+  .text-mega-accent {
+    color: var(--mega-accent);
+  }
+  
+  .bg-mega-accent {
+    background-color: var(--mega-accent);
+  }
+  
+  .border-mega-red {
+    border-color: var(--mega-red);
+  }
+  
+  .hover\:bg-mega-red:hover {
+    background-color: var(--mega-red);
+  }
+  
+  .hover\:text-mega-red:hover {
+    color: var(--mega-red);
+  }
+}

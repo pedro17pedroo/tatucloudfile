@@ -1,0 +1,81 @@
+# Overview
+
+This is a MEGA File Manager API system that provides a RESTful interface for interacting with MEGA cloud storage. The application is built as a full-stack solution with a React frontend and Express.js backend, integrated with MEGA's cloud storage services for file operations including upload, download, management, and search capabilities.
+
+The system features a modern web interface for file management, API key generation for programmatic access, user authentication via Replit's OAuth system, and administrative controls for managing MEGA credentials and system configuration.
+
+# User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+# System Architecture
+
+## Frontend Architecture
+The frontend is built using React with TypeScript, utilizing modern UI patterns and component-based architecture:
+
+**UI Framework**: React with Vite as the build tool and development server, providing fast hot module replacement and optimized builds.
+
+**Component System**: Implements shadcn/ui component library with Radix UI primitives, ensuring accessibility and consistent design patterns. Components are structured with clear separation between presentational and container components.
+
+**State Management**: Uses TanStack Query (React Query) for server state management, providing caching, synchronization, and error handling for API calls. Local state is managed through React hooks.
+
+**Routing**: Implements wouter for lightweight client-side routing with authentication-aware route protection.
+
+**Styling**: Tailwind CSS for utility-first styling with custom CSS variables for theme consistency, including MEGA brand colors and design system.
+
+## Backend Architecture
+The backend follows a RESTful API design pattern with Express.js:
+
+**API Design**: RESTful endpoints following standard HTTP conventions with proper status codes and error handling. Implements rate limiting based on user plans and API key authentication.
+
+**Authentication**: Dual authentication system supporting both session-based authentication (via Replit OAuth) and API key authentication for programmatic access.
+
+**File Operations**: Integration with MEGA SDK through a service layer that handles file upload, download, deletion, and search operations. Files are processed through multer middleware with memory storage for streaming to MEGA.
+
+**Database Layer**: Drizzle ORM with PostgreSQL for type-safe database operations. Schema includes users, files, API keys, plans, and MEGA credentials with proper relationships and constraints.
+
+## Data Storage Solutions
+**Primary Database**: PostgreSQL via Neon serverless database for user data, file metadata, API keys, and system configuration.
+
+**File Storage**: MEGA cloud storage as the primary file storage backend, accessed through the official MEGA SDK.
+
+**Session Storage**: PostgreSQL-backed session storage for user authentication state management.
+
+**Schema Design**: Normalized database schema with proper foreign key relationships, supporting multi-tenant architecture with user-based data isolation.
+
+## Authentication and Authorization
+**User Authentication**: Replit OAuth integration for web-based user authentication with automatic user provisioning and profile management.
+
+**API Authentication**: JWT-like API key system with hashed keys stored in database, supporting key rotation and usage tracking.
+
+**Authorization Levels**: Role-based access control with regular users and admin users, where admin users can configure MEGA credentials and view system statistics.
+
+**Session Management**: Secure session handling with HTTP-only cookies, proper CSRF protection, and configurable session timeouts.
+
+# External Dependencies
+
+## Core Infrastructure
+- **Neon Database**: PostgreSQL serverless database for application data storage
+- **Replit OAuth**: Authentication provider for user login and profile management
+- **Vite**: Frontend build tool and development server
+
+## MEGA Integration
+- **MEGA SDK**: Official MEGA SDK (megajs package) for cloud storage operations
+- **File Processing**: Multer middleware for handling multipart file uploads with memory storage
+
+## UI and Styling
+- **shadcn/ui**: Component library built on Radix UI primitives
+- **Radix UI**: Accessible component primitives for complex UI elements
+- **Tailwind CSS**: Utility-first CSS framework for styling
+- **Lucide React**: Icon library for consistent iconography
+
+## Development and Runtime
+- **TypeScript**: Type safety across frontend and backend
+- **Drizzle ORM**: Type-safe database ORM with PostgreSQL adapter
+- **TanStack Query**: Server state management and caching
+- **Express.js**: Backend web framework with middleware ecosystem
+- **bcrypt**: Password hashing for secure credential storage
+- **rate limiting**: Express middleware for API rate limiting
+
+## Database Schema
+The system uses a PostgreSQL database with tables for users, files, API keys, plans, MEGA credentials, and sessions. The schema supports user authentication, file metadata storage, API key management, and admin configuration of MEGA credentials.
