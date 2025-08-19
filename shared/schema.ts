@@ -186,10 +186,31 @@ export const userSettings = pgTable("user_settings", {
 export const paymentMethods = pgTable("payment_methods", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
-  type: varchar("type").notNull(), // 'stripe', 'bank_transfer', 'paypal', 'mbway'
+  type: varchar("type").notNull(), // 'stripe', 'bank_transfer_bai', 'bank_transfer_bfa', 'bank_transfer_bic', 'paypal', 'wise', 'multicaixa', 'express_payment'
+  country: varchar("country").default('AO'), // AO = Angola, INT = International
   isActive: boolean("is_active").default(true),
+  bankDetails: jsonb("bank_details").default('{}'), // Account details for bank transfers
   configuration: jsonb("configuration").default('{}'),
+  processingTime: varchar("processing_time"), // e.g., "24-48 horas"
+  fees: varchar("fees"), // e.g., "0.5% + AOA 500"
+  description: text("description"),
+  instructions: text("instructions"), // Instructions for users
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Payment proofs table for bank transfers
+export const paymentProofs = pgTable("payment_proofs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").references(() => payments.id).notNull(),
+  fileName: varchar("file_name").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: varchar("mime_type"),
+  uploadPath: varchar("upload_path").notNull(), // Path where file is stored
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  status: varchar("status").default('pending'), // pending, verified, rejected
+  notes: text("notes"),
 });
 
 // Insert schemas
@@ -240,6 +261,11 @@ export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit
   createdAt: true,
 });
 
+export const insertPaymentProofSchema = createInsertSchema(paymentProofs).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -267,3 +293,5 @@ export type MegaAccountStatus = typeof megaAccountStatus.$inferSelect;
 export type InsertMegaAccountStatus = typeof megaAccountStatus.$inferInsert;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
 export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
+export type PaymentProof = typeof paymentProofs.$inferSelect;
+export type InsertPaymentProof = z.infer<typeof insertPaymentProofSchema>;

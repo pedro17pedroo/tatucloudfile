@@ -40,13 +40,27 @@ const createUserSchema = z.object({
 
 const paymentMethodSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(['stripe', 'bank_transfer', 'paypal', 'mbway']),
+  type: z.enum(['stripe', 'bank_transfer_bai', 'bank_transfer_bfa', 'bank_transfer_bic', 'paypal', 'wise', 'multicaixa', 'express_payment']),
+  country: z.string().default('AO'),
   isActive: z.boolean(),
+  bankDetails: z.object({
+    bankName: z.string().optional(),
+    accountNumber: z.string().optional(),
+    accountHolder: z.string().optional(),
+    iban: z.string().optional(),
+  }).optional(),
   configuration: z.object({
-    processingTime: z.string().optional(),
-    fees: z.string().optional(),
-    description: z.string().optional(),
-  }),
+    entityCode: z.string().optional(),
+    reference: z.string().optional(),
+    clientId: z.string().optional(),
+    currency: z.string().optional(),
+    accountId: z.string().optional(),
+    currencies: z.array(z.string()).optional(),
+  }).optional(),
+  processingTime: z.string().optional(),
+  fees: z.string().optional(),
+  description: z.string().optional(),
+  instructions: z.string().optional(),
 });
 
 export class AdminController {
@@ -541,6 +555,99 @@ export class AdminController {
     } catch (error) {
       console.error('Delete plan error:', error);
       res.status(500).json({ message: 'Failed to delete plan' });
+    }
+  }
+
+  // Payment Methods Management
+  static async getPaymentMethods(req: Request, res: Response) {
+    try {
+      const result = await AdminService.getAllPaymentMethods();
+      res.json(result);
+    } catch (error) {
+      console.error('Get payment methods error:', error);
+      res.status(500).json({ message: 'Failed to get payment methods' });
+    }
+  }
+
+  static async createPaymentMethod(req: Request, res: Response) {
+    try {
+      const adminUser = (req as any).adminUser;
+      const methodData = paymentMethodSchema.parse(req.body);
+
+      const method = await AdminService.createPaymentMethod(methodData);
+      
+      await AdminService.logAuditAction(
+        adminUser.id,
+        'payment_method_created',
+        'payment_method',
+        method.id,
+        null,
+        methodData,
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      res.status(201).json(method);
+    } catch (error) {
+      console.error('Create payment method error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create payment method' });
+    }
+  }
+
+  static async updatePaymentMethod(req: Request, res: Response) {
+    try {
+      const { methodId } = req.params;
+      const adminUser = (req as any).adminUser;
+      const updates = paymentMethodSchema.partial().parse(req.body);
+
+      const method = await AdminService.updatePaymentMethod(methodId, updates);
+      
+      await AdminService.logAuditAction(
+        adminUser.id,
+        'payment_method_updated',
+        'payment_method',
+        methodId,
+        null,
+        updates,
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      res.json(method);
+    } catch (error) {
+      console.error('Update payment method error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to update payment method' });
+    }
+  }
+
+  static async deletePaymentMethod(req: Request, res: Response) {
+    try {
+      const { methodId } = req.params;
+      const adminUser = (req as any).adminUser;
+
+      await AdminService.deletePaymentMethod(methodId);
+      
+      await AdminService.logAuditAction(
+        adminUser.id,
+        'payment_method_deleted',
+        'payment_method',
+        methodId,
+        null,
+        null,
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      res.json({ message: 'Payment method deleted successfully' });
+    } catch (error) {
+      console.error('Delete payment method error:', error);
+      res.status(500).json({ message: 'Failed to delete payment method' });
     }
   }
 

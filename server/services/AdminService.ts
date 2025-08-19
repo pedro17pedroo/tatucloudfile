@@ -1,11 +1,11 @@
 import { db } from '../db';
 import { 
   users, plans, megaCredentials, payments, apiUsage, auditLogs, systemSettings, 
-  megaAccountStatus, apiKeys, files, userSubscriptions, paymentMethods,
+  megaAccountStatus, apiKeys, files, userSubscriptions, paymentMethods, paymentProofs,
   User, Plan, MegaCredentials, Payment, ApiUsage, AuditLog, SystemSetting, 
-  MegaAccountStatus, ApiKey, File, UserSubscription, PaymentMethod,
+  MegaAccountStatus, ApiKey, File, UserSubscription, PaymentMethod, PaymentProof,
   InsertPlan, InsertPayment, InsertAuditLog, InsertSystemSetting,
-  InsertMegaAccountStatus, InsertPaymentMethod
+  InsertMegaAccountStatus, InsertPaymentMethod, InsertPaymentProof
 } from '@shared/schema';
 import { eq, desc, sql, count, sum, gte, lte, and, or, like, isNull } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
@@ -723,6 +723,197 @@ export class AdminService {
       }
     } catch (error) {
       console.error('Error updating system setting:', error);
+      throw error;
+    }
+  }
+
+  // Payment Methods Management
+  static async getAllPaymentMethods(): Promise<{ paymentMethods: PaymentMethod[], total: number }> {
+    try {
+      const methods = await db.select().from(paymentMethods).orderBy(paymentMethods.country, paymentMethods.name);
+      return { paymentMethods: methods, total: methods.length };
+    } catch (error) {
+      console.error('Error getting payment methods:', error);
+      throw error;
+    }
+  }
+
+  static async createPaymentMethod(methodData: InsertPaymentMethod): Promise<PaymentMethod> {
+    try {
+      const [newMethod] = await db.insert(paymentMethods).values(methodData).returning();
+      return newMethod;
+    } catch (error) {
+      console.error('Error creating payment method:', error);
+      throw error;
+    }
+  }
+
+  static async updatePaymentMethod(id: string, updates: Partial<InsertPaymentMethod>): Promise<PaymentMethod> {
+    try {
+      const [updated] = await db.update(paymentMethods)
+        .set(updates)
+        .where(eq(paymentMethods.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      throw error;
+    }
+  }
+
+  static async deletePaymentMethod(id: string): Promise<void> {
+    try {
+      await db.delete(paymentMethods).where(eq(paymentMethods.id, id));
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      throw error;
+    }
+  }
+
+  static async seedAngolianPaymentMethods(): Promise<void> {
+    try {
+      // Check if methods already exist
+      const existing = await db.select().from(paymentMethods).limit(1);
+      if (existing.length > 0) return;
+
+      const angolianMethods = [
+        {
+          name: 'Transferência BAI',
+          type: 'bank_transfer_bai',
+          country: 'AO',
+          bankDetails: {
+            bankName: 'Banco Angolano de Investimentos',
+            accountNumber: '40400000012345678901',
+            accountHolder: 'MEGA File Manager Lda',
+            iban: 'AO06000400400000012345678901'
+          },
+          processingTime: '24-48 horas',
+          fees: 'Sem taxas adicionais',
+          instructions: 'Faça a transferência usando os dados acima. Após o pagamento, faça upload do comprovativo para verificação.',
+          description: 'Transferência bancária através do Banco Angolano de Investimentos'
+        },
+        {
+          name: 'Transferência BFA',
+          type: 'bank_transfer_bfa',
+          country: 'AO',
+          bankDetails: {
+            bankName: 'Banco de Fomento Angola',
+            accountNumber: '12300000012345678902',
+            accountHolder: 'MEGA File Manager Lda',
+            iban: 'AO06012312300000012345678902'
+          },
+          processingTime: '24-48 horas',
+          fees: 'Sem taxas adicionais',
+          instructions: 'Transfira para a conta indicada. Guarde o comprovativo e faça upload aqui.',
+          description: 'Transferência bancária através do Banco de Fomento Angola'
+        },
+        {
+          name: 'Transferência BIC',
+          type: 'bank_transfer_bic',
+          country: 'AO',
+          bankDetails: {
+            bankName: 'Banco BIC Angola',
+            accountNumber: '11200000012345678903',
+            accountHolder: 'MEGA File Manager Lda',
+            iban: 'AO06011211200000012345678903'
+          },
+          processingTime: '24-48 horas',
+          fees: 'Sem taxas adicionais',
+          instructions: 'Realize a transferência e envie o comprovativo para ativação imediata.',
+          description: 'Transferência bancária através do Banco BIC Angola'
+        },
+        {
+          name: 'Multicaixa Express',
+          type: 'multicaixa',
+          country: 'AO',
+          configuration: {
+            entityCode: '20567',
+            reference: 'Gerada automaticamente'
+          },
+          processingTime: 'Imediato',
+          fees: 'AOA 150',
+          instructions: 'Use a referência gerada para pagar numa Multicaixa ou via app.',
+          description: 'Pagamento através da rede Multicaixa'
+        },
+        {
+          name: 'PayPal Internacional',
+          type: 'paypal',
+          country: 'INT',
+          configuration: {
+            clientId: 'configurar-admin',
+            currency: 'USD'
+          },
+          processingTime: 'Imediato',
+          fees: '3.4% + $0.30',
+          instructions: 'Pagamento seguro via PayPal com cartão ou conta PayPal.',
+          description: 'Pagamento internacional via PayPal'
+        },
+        {
+          name: 'Wise (TransferWise)',
+          type: 'wise',
+          country: 'INT',
+          configuration: {
+            accountId: 'configurar-admin',
+            currencies: ['USD', 'EUR', 'GBP']
+          },
+          processingTime: '1-3 dias úteis',
+          fees: 'Variável por moeda',
+          instructions: 'Transferência internacional de baixo custo via Wise.',
+          description: 'Transferência internacional via Wise'
+        }
+      ];
+
+      for (const method of angolianMethods) {
+        await db.insert(paymentMethods).values(method);
+      }
+
+      console.log('[Payment Methods] Seeded Angolan payment methods');
+    } catch (error) {
+      console.error('Error seeding payment methods:', error);
+    }
+  }
+
+  // Payment Proof Management
+  static async uploadPaymentProof(proofData: InsertPaymentProof): Promise<PaymentProof> {
+    try {
+      const [proof] = await db.insert(paymentProofs).values(proofData).returning();
+      return proof;
+    } catch (error) {
+      console.error('Error uploading payment proof:', error);
+      throw error;
+    }
+  }
+
+  static async getPaymentProofs(paymentId?: string): Promise<PaymentProof[]> {
+    try {
+      let query = db.select().from(paymentProofs);
+      
+      if (paymentId) {
+        query = query.where(eq(paymentProofs.paymentId, paymentId));
+      }
+      
+      return await query.orderBy(desc(paymentProofs.uploadedAt));
+    } catch (error) {
+      console.error('Error getting payment proofs:', error);
+      throw error;
+    }
+  }
+
+  static async verifyPaymentProof(proofId: string, verifierId: string, status: 'verified' | 'rejected', notes?: string): Promise<PaymentProof> {
+    try {
+      const [updated] = await db.update(paymentProofs)
+        .set({
+          status,
+          verifiedAt: new Date(),
+          verifiedBy: verifierId,
+          notes
+        })
+        .where(eq(paymentProofs.id, proofId))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error('Error verifying payment proof:', error);
       throw error;
     }
   }

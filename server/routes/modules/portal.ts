@@ -76,6 +76,12 @@ portalRouter.delete('/admin/users/:userId', AdminController.deleteUser);
 portalRouter.get('/admin/payments', AdminController.getPayments);
 portalRouter.put('/admin/payments/:paymentId/status', AdminController.updatePaymentStatus);
 
+// Payment Methods Management
+portalRouter.get('/admin/payment-methods', AdminController.getPaymentMethods);
+portalRouter.post('/admin/payment-methods', AdminController.createPaymentMethod);
+portalRouter.put('/admin/payment-methods/:methodId', AdminController.updatePaymentMethod);
+portalRouter.delete('/admin/payment-methods/:methodId', AdminController.deletePaymentMethod);
+
 // API Management
 portalRouter.get('/admin/api-keys', AdminController.getApiKeys);
 portalRouter.get('/admin/api-usage', AdminController.getApiUsage);

@@ -115,6 +115,10 @@ async function initializeDatabase() {
       }
     }
 
+    // Initialize Angolan payment methods
+    const { AdminService } = await import('../services/AdminService');
+    await AdminService.seedAngolianPaymentMethods();
+
     console.log('[Database] Initialization completed successfully');
     
   } catch (error) {

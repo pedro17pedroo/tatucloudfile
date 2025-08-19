@@ -1097,6 +1097,212 @@ export function AdminPanelWithSidebar() {
           </div>
         );
 
+      case 'payment-methods':
+        return (
+          <div className="space-y-6">
+            {/* Payment Methods Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="flex items-center">
+                  <Building2 className="w-8 h-8 text-orange-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-orange-600 font-medium">Métodos Angola</p>
+                    <p className="text-2xl font-bold text-orange-700">
+                      {paymentMethodsData?.paymentMethods?.filter(m => m.country === 'AO').length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center">
+                  <Globe className="w-8 h-8 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">Métodos Internacionais</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {paymentMethodsData?.paymentMethods?.filter(m => m.country === 'INT').length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center">
+                  <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-green-600 font-medium">Métodos Ativos</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {paymentMethodsData?.paymentMethods?.filter(m => m.isActive).length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Methods Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Métodos de Pagamento Configurados</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-add-payment-method">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Método
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Adicionar Método de Pagamento</DialogTitle>
+                        <DialogDescription>
+                          Configure um novo método de pagamento para os utilizadores
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="method-name">Nome do Método</Label>
+                          <Input id="method-name" placeholder="Ex: Transferência BAI" data-testid="input-method-name" />
+                        </div>
+                        <div>
+                          <Label htmlFor="method-type">Tipo</Label>
+                          <Select defaultValue="bank_transfer_bai">
+                            <SelectTrigger data-testid="select-method-type">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bank_transfer_bai">Transferência BAI</SelectItem>
+                              <SelectItem value="bank_transfer_bfa">Transferência BFA</SelectItem>
+                              <SelectItem value="bank_transfer_bic">Transferência BIC</SelectItem>
+                              <SelectItem value="multicaixa">Multicaixa</SelectItem>
+                              <SelectItem value="paypal">PayPal</SelectItem>
+                              <SelectItem value="wise">Wise</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="method-country">País</Label>
+                          <Select defaultValue="AO">
+                            <SelectTrigger data-testid="select-method-country">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AO">🇦🇴 Angola</SelectItem>
+                              <SelectItem value="INT">🌍 Internacional</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="method-processing">Tempo de Processamento</Label>
+                          <Input id="method-processing" placeholder="Ex: 24-48 horas" data-testid="input-method-processing" />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="method-description">Descrição</Label>
+                          <Input id="method-description" placeholder="Descrição do método de pagamento" data-testid="input-method-description" />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="method-instructions">Instruções para o Utilizador</Label>
+                          <textarea 
+                            id="method-instructions" 
+                            className="w-full p-3 border rounded-md"
+                            rows={3}
+                            placeholder="Instruções detalhadas sobre como usar este método..."
+                            data-testid="textarea-method-instructions"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-4">
+                        <Button variant="outline" data-testid="button-cancel-method">Cancelar</Button>
+                        <Button data-testid="button-create-method">Criar Método</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {paymentMethodsLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-2/3"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : paymentMethodsData?.paymentMethods?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      Nenhum método configurado
+                    </h3>
+                    <p className="text-gray-500">
+                      Configure métodos de pagamento para permitir que utilizadores façam pagamentos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {paymentMethodsData?.paymentMethods?.map((method) => (
+                      <div key={method.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg" data-testid={`payment-method-${method.id}`}>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            {method.country === 'AO' ? (
+                              <Building2 className="w-6 h-6 text-orange-600" />
+                            ) : (
+                              <Globe className="w-6 h-6 text-blue-600" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-medium" data-testid={`text-method-name-${method.id}`}>{method.name}</h4>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                method.country === 'AO' 
+                                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}>
+                                {method.country === 'AO' ? 'Angola' : 'Internacional'}
+                              </span>
+                              {method.isActive ? (
+                                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                                  Ativo
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+                                  Inativo
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">{method.description}</p>
+                            <div className="flex items-center space-x-4 mt-1">
+                              <span className="text-xs text-gray-400">
+                                ⏱️ {method.processingTime || 'N/A'}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                💰 {method.fees || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm" data-testid={`button-edit-method-${method.id}`}>
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" data-testid={`button-delete-method-${method.id}`}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-12">
