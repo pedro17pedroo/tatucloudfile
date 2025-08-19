@@ -27,8 +27,7 @@ portalRouter.get('/files/search', FileController.searchFiles);
 portalRouter.get('/user/profile', UserController.getProfile);
 portalRouter.post('/user/select-plan', UserController.selectPlan);
 
-// Plans
-portalRouter.get('/plans', AdminController.getPlans);
+// Plans (moved to auth routes for public access during registration)
 
 // Admin routes
 portalRouter.use('/admin', isAdmin);

@@ -22,7 +22,7 @@ interface RegisterStep1Props {
 export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: RegisterStep1Props) {
   const [, navigate] = useLocation();
   const { data: plans = [] } = useQuery<Plan[]>({
-    queryKey: ["/api/portal/plans"],
+    queryKey: ["/api/auth/plans"],
   });
 
   const formatPrice = (price: string) => {

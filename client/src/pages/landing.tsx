@@ -72,14 +72,6 @@ export default function Landing() {
               <span className="text-xl font-bold text-mega-text" data-testid="logo-text">MEGA File Manager</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/register")}
-                className="text-mega-red border-mega-red hover:bg-mega-red/5"
-                data-testid="register-nav-button"
-              >
-                Criar conta
-              </Button>
               <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
                 <DialogTrigger asChild>
                   <Button 
@@ -137,26 +129,17 @@ export default function Landing() {
                       {loginMutation.isPending ? "A entrar..." : "Entrar"}
                     </Button>
                     
-                    <div className="text-center mt-4">
-                      <p className="text-sm text-gray-600">
-                        Não tem conta?{" "}
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => {
-                            setIsAuthOpen(false);
-                            navigate("/register");
-                          }}
-                          className="text-mega-red p-0 h-auto"
-                          data-testid="register-link"
-                        >
-                          Criar conta
-                        </Button>
-                      </p>
-                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/register")}
+                className="text-mega-red border-mega-red hover:bg-mega-red/5"
+                data-testid="register-nav-button"
+              >
+                Criar conta
+              </Button>
             </div>
           </div>
         </div>
@@ -189,7 +172,7 @@ export default function Landing() {
                 data-testid="hero-login-button"
               >
                 <User className="mr-2 h-5 w-5" />
-                Já tem conta? Entrar
+                Entrar
               </Button>
             </div>
           </div>
