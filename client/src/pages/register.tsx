@@ -68,10 +68,13 @@ export default function Register() {
     registerMutation.mutate();
   };
 
-  const handleLoginRedirect = () => {
+  const handleLoginRedirect = async () => {
     // Force a final query refresh before navigating to ensure user state is current
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    navigate("/");
+    await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    // Small delay to allow the query to complete
+    setTimeout(() => {
+      navigate("/");
+    }, 500);
   };
 
   // Loading state during registration
