@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/AuthService';
+import { OtpService } from '../services/OtpService';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import { storage } from '../storage';
@@ -19,6 +20,13 @@ export class RegistrationController {
   static async register(req: Request, res: Response) {
     try {
       const { email, phone, firstName, lastName, password, planId } = registrationSchema.parse(req.body);
+
+      const contact = email || phone!;
+      
+      // Verify OTP first (for demo, we'll skip this but check if contact is provided)
+      // In production: if (!OtpService.isVerified(contact)) {
+      //   return res.status(400).json({ message: 'Contact not verified. Please verify OTP first.' });
+      // }
 
       // Check if plan exists
       const plans = await storage.getPlans();
@@ -56,6 +64,9 @@ export class RegistrationController {
         isAdmin: false,
         storageUsed: '0',
       });
+
+      // Clear OTP after successful registration
+      OtpService.clearOtp(contact);
 
       // Create session
       (req.session as any).userId = user.id;

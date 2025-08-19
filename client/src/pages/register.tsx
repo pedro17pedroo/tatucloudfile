@@ -1,259 +1,143 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, CheckCircle, DollarSign } from "lucide-react";
-import type { Plan } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import RegisterStep1 from "./register-step-1";
+import RegisterStep2 from "./register-step-2";
+import RegisterStep3 from "./register-step-3";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Home } from "lucide-react";
 
 export default function Register() {
-  const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedPlan, setSelectedPlan] = useState("");
+  const [contactMethod, setContactMethod] = useState<'email' | 'phone'>('email');
   const [formData, setFormData] = useState({
-    email: "",
-    phone: "",
     firstName: "",
     lastName: "",
+    email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
-    planId: "",
-  });
-  const [useEmail, setUseEmail] = useState(true);
-
-  const { data: plans = [] } = useQuery<Plan[]>({
-    queryKey: ["/api/portal/plans"],
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      if (data.password !== data.confirmPassword) {
-        throw new Error("Passwords do not match");
-      }
-
+    mutationFn: async () => {
       const registrationData = {
-        ...(useEmail ? { email: data.email } : { phone: data.phone }),
-        firstName: data.firstName,
-        lastName: data.lastName,
-        password: data.password,
-        planId: data.planId,
+        ...(contactMethod === 'email' ? { email: formData.email } : { phone: formData.phone }),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        password: formData.password,
+        planId: selectedPlan,
       };
 
       return apiRequest("/api/auth/register", "POST", registrationData);
     },
     onSuccess: () => {
       toast({
-        title: "Registration successful",
-        description: "Your account has been created successfully",
+        title: "Conta criada com sucesso!",
+        description: "Bem-vindo ao MEGA File Manager",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      navigate("/");
+      setCurrentStep(4); // Show success page
     },
     onError: (error: any) => {
       toast({
-        title: "Registration failed",
-        description: error.message || "Failed to create account",
+        title: "Erro ao criar conta",
+        description: error.message || "Tente novamente",
         variant: "destructive",
       });
+      setCurrentStep(2); // Go back to form
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.planId) {
-      toast({
-        title: "Plan required",
-        description: "Please select a plan to continue",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    registerMutation.mutate(formData);
+  const handleFormChange = (updates: Partial<typeof formData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
   };
 
-  const formatPrice = (price: string) => {
-    const numPrice = parseFloat(price);
-    return numPrice === 0 ? "Free" : `€${numPrice}/month`;
+  const handleStep3Complete = () => {
+    // OTP verified, create account
+    registerMutation.mutate();
   };
 
-  const formatStorage = (bytes: string) => {
-    const size = parseInt(bytes);
-    const gb = size / (1024 * 1024 * 1024);
-    return `${gb}GB`;
+  const handleLoginRedirect = () => {
+    navigate("/");
   };
 
+  if (currentStep === 1) {
+    return (
+      <RegisterStep1
+        selectedPlan={selectedPlan}
+        onPlanSelect={setSelectedPlan}
+        onNext={() => setCurrentStep(2)}
+      />
+    );
+  }
+
+  if (currentStep === 2) {
+    return (
+      <RegisterStep2
+        formData={formData}
+        contactMethod={contactMethod}
+        onFormChange={handleFormChange}
+        onContactMethodChange={setContactMethod}
+        onBack={() => setCurrentStep(1)}
+        onNext={() => setCurrentStep(3)}
+        selectedPlan={selectedPlan}
+      />
+    );
+  }
+
+  if (currentStep === 3) {
+    return (
+      <RegisterStep3
+        contactMethod={contactMethod}
+        contactValue={contactMethod === 'email' ? formData.email : formData.phone}
+        onBack={() => setCurrentStep(2)}
+        onNext={handleStep3Complete}
+      />
+    );
+  }
+
+  // Success page (step 4)
   return (
     <div className="min-h-screen bg-mega-light flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/login")}
-              className="absolute left-4 top-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Login
-            </Button>
+          <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+            <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <CardTitle className="text-3xl font-bold text-mega-text">Create Account</CardTitle>
-          <p className="text-gray-600 mt-2">Sign up and choose your plan to get started</p>
+          <CardTitle className="text-2xl font-bold text-mega-text">
+            Conta criada com sucesso!
+          </CardTitle>
+          <p className="text-gray-600 mt-2">
+            A sua conta foi criada e verificada. Pode agora aceder ao seu dashboard.
+          </p>
         </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Contact Method Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <Button
-                type="button"
-                variant={useEmail ? "default" : "ghost"}
-                size="sm"
-                className={`flex-1 ${useEmail ? 'bg-mega-red text-white' : ''}`}
-                onClick={() => setUseEmail(true)}
-              >
-                Email
-              </Button>
-              <Button
-                type="button"
-                variant={!useEmail ? "default" : "ghost"}
-                size="sm"
-                className={`flex-1 ${!useEmail ? 'bg-mega-red text-white' : ''}`}
-                onClick={() => setUseEmail(false)}
-              >
-                Phone
-              </Button>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                />
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Resumo da conta:</h4>
+              <div className="space-y-1 text-sm text-gray-600">
+                <div><strong>Nome:</strong> {formData.firstName} {formData.lastName}</div>
+                <div><strong>Contacto:</strong> {contactMethod === 'email' ? formData.email : formData.phone}</div>
+                <div><strong>Plano:</strong> {selectedPlan === 'basic' ? 'Basic' : selectedPlan === 'pro' ? 'Pro' : 'Premium'}</div>
               </div>
             </div>
-
-            <div>
-              <Label htmlFor={useEmail ? "email" : "phone"}>
-                {useEmail ? "Email" : "Phone Number"}
-              </Label>
-              <Input
-                id={useEmail ? "email" : "phone"}
-                type={useEmail ? "email" : "tel"}
-                placeholder={useEmail ? "your@email.com" : "+351 912 345 678"}
-                required
-                value={useEmail ? formData.email : formData.phone}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  [useEmail ? "email" : "phone"]: e.target.value 
-                })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Plan Selection - Required */}
-            <div>
-              <Label htmlFor="plan" className="text-lg font-semibold">
-                Choose Your Plan <span className="text-red-500">*</span>
-              </Label>
-              <p className="text-sm text-gray-600 mb-3">Required: Select a plan to continue</p>
-              
-              <div className="grid gap-3">
-                {plans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                      formData.planId === plan.id
-                        ? 'border-mega-red bg-mega-red/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setFormData({ ...formData, planId: plan.id })}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-mega-text">{plan.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {formatStorage(plan.storageLimit)} • {plan.apiCallsPerHour} API calls/hour
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-mega-text">
-                          {formatPrice(plan.pricePerMonth)}
-                        </span>
-                        {formData.planId === plan.id && (
-                          <CheckCircle className="h-5 w-5 text-mega-red" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            
             <Button
-              type="submit"
-              disabled={registerMutation.isPending || !formData.planId}
+              onClick={handleLoginRedirect}
               className="w-full bg-mega-red hover:bg-red-600 text-white"
+              data-testid="go-to-dashboard-button"
             >
-              {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+              <Home className="h-4 w-4 mr-2" />
+              Ir para o Dashboard
             </Button>
-          </form>
-
-          <div className="text-center mt-6">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <Button
-                variant="link"
-                onClick={() => navigate("/login")}
-                className="text-mega-red hover:text-red-600 p-0"
-              >
-                Sign in here
-              </Button>
-            </p>
           </div>
         </CardContent>
       </Card>

@@ -2,27 +2,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Cloud, Upload, Download, Search, Shield, User, Phone, Mail, Lock } from "lucide-react";
+import { Cloud, Upload, Download, Search, Shield, User, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export default function Landing() {
+  const [, navigate] = useLocation();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authTab, setAuthTab] = useState("login");
   const [loginForm, setLoginForm] = useState({
     emailOrPhone: "",
     password: ""
-  });
-  const [registerForm, setRegisterForm] = useState({
-    firstName: "",
-    lastName: "",
-    emailOrPhone: "",
-    password: "",
-    confirmPassword: ""
   });
   
   const { toast } = useToast();
@@ -58,44 +49,6 @@ export default function Landing() {
     }
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: typeof registerForm) => {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro no registo");
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Por favor, faça login para continuar"
-      });
-      setAuthTab("login");
-      setRegisterForm({
-        firstName: "",
-        lastName: "",
-        emailOrPhone: "",
-        password: "",
-        confirmPassword: ""
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro no registo",
-        description: error.message || "Erro ao criar conta",
-        variant: "destructive"
-      });
-    }
-  });
-
   const handleLogin = () => {
     if (!loginForm.emailOrPhone || !loginForm.password) {
       toast({
@@ -108,26 +61,6 @@ export default function Landing() {
     loginMutation.mutate(loginForm);
   };
 
-  const handleRegister = () => {
-    if (!registerForm.firstName || !registerForm.lastName || !registerForm.emailOrPhone || !registerForm.password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (registerForm.password !== registerForm.confirmPassword) {
-      toast({
-        title: "Passwords não coincidem",
-        description: "Por favor, confirme a sua password",
-        variant: "destructive"
-      });
-      return;
-    }
-    registerMutation.mutate(registerForm);
-  };
-
   return (
     <div className="min-h-screen bg-mega-light">
       {/* Navigation */}
@@ -138,30 +71,33 @@ export default function Landing() {
               <Cloud className="h-8 w-8 text-mega-red mr-3" data-testid="logo-icon" />
               <span className="text-xl font-bold text-mega-text" data-testid="logo-text">MEGA File Manager</span>
             </div>
-            <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  className="bg-[#D9272E] hover:bg-[#B91C1C] text-white"
-                  data-testid="login-button"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Entrar
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-center text-2xl font-bold text-gray-900">
-                    Bem-vindo ao MEGA File Manager
-                  </DialogTitle>
-                </DialogHeader>
-                
-                <Tabs value={authTab} onValueChange={setAuthTab} className="mt-6">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="login">Entrar</TabsTrigger>
-                    <TabsTrigger value="register">Registar</TabsTrigger>
-                  </TabsList>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/register")}
+                className="text-mega-red border-mega-red hover:bg-mega-red/5"
+                data-testid="register-nav-button"
+              >
+                Criar conta
+              </Button>
+              <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    className="bg-[#D9272E] hover:bg-[#B91C1C] text-white"
+                    data-testid="login-button"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Entrar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-center text-2xl font-bold text-gray-900">
+                      Bem-vindo ao MEGA File Manager
+                    </DialogTitle>
+                  </DialogHeader>
                   
-                  <TabsContent value="login" className="space-y-4 mt-6">
+                  <div className="mt-6 space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="login-email">Email ou Telemóvel</Label>
                       <div className="relative">
@@ -200,126 +136,60 @@ export default function Landing() {
                     >
                       {loginMutation.isPending ? "A entrar..." : "Entrar"}
                     </Button>
-                  </TabsContent>
-                  
-                  <TabsContent value="register" className="space-y-4 mt-6">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="register-firstname">Nome</Label>
-                        <Input
-                          id="register-firstname"
-                          type="text"
-                          placeholder="João"
-                          value={registerForm.firstName}
-                          onChange={(e) => setRegisterForm(prev => ({ ...prev, firstName: e.target.value }))}
-                          data-testid="register-firstname-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="register-lastname">Apelido</Label>
-                        <Input
-                          id="register-lastname"
-                          type="text"
-                          placeholder="Silva"
-                          value={registerForm.lastName}
-                          onChange={(e) => setRegisterForm(prev => ({ ...prev, lastName: e.target.value }))}
-                          data-testid="register-lastname-input"
-                        />
-                      </div>
+                    
+                    <div className="text-center mt-4">
+                      <p className="text-sm text-gray-600">
+                        Não tem conta?{" "}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => {
+                            setIsAuthOpen(false);
+                            navigate("/register");
+                          }}
+                          className="text-mega-red p-0 h-auto"
+                          data-testid="register-link"
+                        >
+                          Criar conta
+                        </Button>
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-email">Email ou Telemóvel</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="register-email"
-                          type="text"
-                          placeholder="nome@exemplo.com ou +351912345678"
-                          value={registerForm.emailOrPhone}
-                          onChange={(e) => setRegisterForm(prev => ({ ...prev, emailOrPhone: e.target.value }))}
-                          className="pl-10"
-                          data-testid="register-email-input"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-password">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="register-password"
-                          type="password"
-                          placeholder="Mínimo 8 caracteres"
-                          value={registerForm.password}
-                          onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
-                          className="pl-10"
-                          data-testid="register-password-input"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-confirm-password">Confirmar Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="register-confirm-password"
-                          type="password"
-                          placeholder="Repita a sua password"
-                          value={registerForm.confirmPassword}
-                          onChange={(e) => setRegisterForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                          className="pl-10"
-                          data-testid="register-confirm-password-input"
-                        />
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={handleRegister}
-                      disabled={registerMutation.isPending}
-                      className="w-full bg-[#D9272E] hover:bg-[#B91C1C] text-white"
-                      data-testid="register-submit-button"
-                    >
-                      {registerMutation.isPending ? "A criar conta..." : "Criar Conta"}
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-white py-20">
+      <section className="relative bg-gradient-to-br from-mega-light via-white to-mega-light py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-mega-text mb-6" data-testid="hero-title">
+            <h1 className="text-5xl font-bold text-mega-text mb-6 leading-tight">
               Secure Cloud Storage
-              <span className="text-mega-red"> API Integration</span>
+              <span className="text-mega-red block">File API</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto" data-testid="hero-description">
-              Connect your applications with MEGA's powerful cloud storage using our RESTful API. Upload, download, manage, and search files with enterprise-grade security.
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Connect your applications seamlessly with MEGA cloud storage using our RESTful
+              API. Upload, download, and manage files with enterprise-grade security.
             </p>
-            
-            {/* Quick Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    className="bg-[#D9272E] text-white hover:bg-[#B91C1C]" 
-                    onClick={() => setAuthTab("register")}
-                    data-testid="try-dashboard-button"
-                  >
-                    <Cloud className="mr-2 h-4 w-4" />
-                    Começar Gratuitamente
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
-              <Button 
-                variant="outline" 
-                className="border-[#D9272E] text-[#D9272E] hover:bg-[#D9272E] hover:text-white"
-                data-testid="view-api-docs-button"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                onClick={() => navigate("/register")}
+                className="bg-mega-red hover:bg-red-600 text-white px-8 py-3 text-lg"
+                data-testid="hero-register-button"
               >
-                Ver Documentação API
+                Começar Gratuitamente
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setIsAuthOpen(true)}
+                className="border-mega-red text-mega-red hover:bg-mega-red/5 px-8 py-3 text-lg"
+                data-testid="hero-login-button"
+              >
+                <User className="mr-2 h-5 w-5" />
+                Já tem conta? Entrar
               </Button>
             </div>
           </div>
@@ -327,98 +197,104 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-mega-text mb-4" data-testid="features-title">Powerful File Management API</h2>
-            <p className="text-xl text-gray-600" data-testid="features-description">Everything you need to integrate with MEGA cloud storage</p>
+            <h2 className="text-4xl font-bold text-mega-text mb-4">
+              Everything you need to integrate with MEGA
+            </h2>
+            <p className="text-xl text-gray-600">
+              Powerful APIs and developer tools to build amazing file management experiences
+            </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="hover:shadow-md transition-shadow" data-testid="feature-upload">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-mega-red rounded-lg flex items-center justify-center mb-4">
-                  <Upload className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-mega-text mb-2">File Upload</h3>
-                <p className="text-gray-600 text-sm">Upload files up to 1GB with progress tracking and drag-and-drop support</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="hover:shadow-md transition-shadow" data-testid="feature-download">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-mega-accent rounded-lg flex items-center justify-center mb-4">
-                  <Download className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-mega-text mb-2">Download & Stream</h3>
-                <p className="text-gray-600 text-sm">Download files securely with streaming support for large files</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="hover:shadow-md transition-shadow" data-testid="feature-search">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-mega-success rounded-lg flex items-center justify-center mb-4">
-                  <Search className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-mega-text mb-2">Search & Filter</h3>
-                <p className="text-gray-600 text-sm">Advanced file search with filtering by type, size, and date</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="hover:shadow-md transition-shadow" data-testid="feature-security">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-mega-text mb-2">Secure API</h3>
-                <p className="text-gray-600 text-sm">Enterprise-grade security with encrypted transfers and API authentication</p>
-              </CardContent>
-            </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Upload className="h-8 w-8 text-mega-red" />
+              </div>
+              <h3 className="text-xl font-semibold text-mega-text mb-2">File Upload</h3>
+              <p className="text-gray-600">Upload files of any size with resumable uploads and progress tracking</p>
+            </div>
+
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download className="h-8 w-8 text-mega-red" />
+              </div>
+              <h3 className="text-xl font-semibold text-mega-text mb-2">File Download</h3>
+              <p className="text-gray-600">Secure file downloads with temporary links and access controls</p>
+            </div>
+
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-mega-red" />
+              </div>
+              <h3 className="text-xl font-semibold text-mega-text mb-2">File Search</h3>
+              <p className="text-gray-600">Advanced search capabilities across your entire file library</p>
+            </div>
+
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-mega-red" />
+              </div>
+              <h3 className="text-xl font-semibold text-mega-text mb-2">Enterprise Security</h3>
+              <p className="text-gray-600">End-to-end encryption with enterprise-grade security</p>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* CTA Section */}
+      <section className="py-20 bg-mega-red">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Ready to get started?
+          </h2>
+          <p className="text-xl text-red-100 mb-8">
+            Join thousands of developers already building with our MEGA File Manager API
+          </p>
+          <Button
+            onClick={() => navigate("/register")}
+            className="bg-white text-mega-red hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
+            data-testid="cta-register-button"
+          >
+            Create Free Account
+          </Button>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="bg-mega-dark text-white py-12">
+      <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
-                <Cloud className="h-6 w-6 text-mega-red mr-3" />
+                <Cloud className="h-8 w-8 text-mega-red mr-3" />
                 <span className="text-xl font-bold">MEGA File Manager</span>
               </div>
-              <p className="text-gray-400 text-sm">Secure cloud storage API integration with enterprise-grade security and privacy.</p>
+              <p className="text-gray-400 max-w-md">
+                The most secure and reliable way to integrate MEGA cloud storage into your applications.
+              </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">API</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Documentation</a></li>
-                <li><a href="#" className="hover:text-white">Authentication</a></li>
-                <li><a href="#" className="hover:text-white">Rate Limits</a></li>
-                <li><a href="#" className="hover:text-white">SDKs</a></li>
+              <h3 className="text-lg font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">API Documentation</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Examples</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Getting Started</a></li>
-                <li><a href="#" className="hover:text-white">Tutorials</a></li>
-                <li><a href="#" className="hover:text-white">Code Examples</a></li>
-                <li><a href="#" className="hover:text-white">Status Page</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Help Center</a></li>
-                <li><a href="#" className="hover:text-white">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white">Community</a></li>
-                <li><a href="#" className="hover:text-white">Bug Reports</a></li>
+              <h3 className="text-lg font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Status</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2024 MEGA File Manager API. Built with security and privacy first.</p>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 MEGA File Manager. All rights reserved.</p>
           </div>
         </div>
       </footer>

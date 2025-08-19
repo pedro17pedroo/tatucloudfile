@@ -18,14 +18,17 @@ function Router() {
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/register" component={Register} />
+          <Route path="/plans" component={PlanSelection} />
+        </>
       ) : (
         <>
           <Route path="/" component={user?.isAdmin ? Admin : Home} />
           <Route path="/admin" component={Admin} />
           <Route path="/api-docs" component={ApiDocs} />
           <Route path="/plans" component={PlanSelection} />
-        <Route path="/register" component={Register} />
         </>
       )}
       <Route component={NotFound} />
