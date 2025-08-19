@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,21 +12,18 @@ import {
   AlertTriangle, 
   Zap,
   Star,
-  Crown
+  Crown,
+  ArrowLeft,
+  HardDrive,
+  Upload,
+  Clock
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import type { Plan } from "@shared/schema";
 
-interface Plan {
-  id: string;
-  name: string;
-  storageLimit: string;
-  maxFileSize: string;
-  apiCallsLimit: string;
-  price: string;
-  features: string[];
-}
+
 
 interface SubscriptionInfo {
   currentPlan: string;
@@ -41,7 +39,7 @@ export default function Subscription() {
 
   // Fetch available plans
   const { data: plans = [] } = useQuery<Plan[]>({
-    queryKey: ["/api/portal/plans"],
+    queryKey: ["/api/auth/plans"],
   });
 
   // Fetch current subscription info
@@ -154,10 +152,62 @@ export default function Subscription() {
 
   const currentPlan = plans.find(plan => plan.id === user?.planId);
   
+  // Format bytes for display
+  const formatBytes = (bytes: number) => {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`;
+  };
+
+  const getPlanFeatures = (planId: string) => {
+    switch (planId) {
+      case 'basic':
+        return [
+          '2GB de armazenamento',
+          'Upload até 100MB por arquivo',
+          '100 chamadas API/hora',
+          'Suporte por email'
+        ];
+      case 'pro':
+        return [
+          '5GB de armazenamento',
+          'Upload até 500MB por arquivo',
+          '1000 chamadas API/hora',
+          'Suporte prioritário',
+          'API avançada'
+        ];
+      case 'premium':
+        return [
+          '10GB de armazenamento',
+          'Upload até 1GB por arquivo',
+          '5000 chamadas API/hora',
+          'Suporte dedicado',
+          'API completa',
+          'Funcionalidades premium'
+        ];
+      default:
+        return [];
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto">
+        {/* Navigation Header */}
         <div className="mb-8">
+          <Link href="/dashboard">
+            <Button variant="ghost" className="mb-4 text-mega-text hover:text-mega-red">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar ao Dashboard
+            </Button>
+          </Link>
           <h1 className="text-3xl font-bold text-mega-text">Subscrição</h1>
           <p className="text-gray-600 mt-2">Gerir a sua subscrição e plano atual</p>
         </div>
@@ -200,10 +250,33 @@ export default function Subscription() {
                 )}
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <h4 className="font-medium">Funcionalidades do plano atual:</h4>
+                
+                {/* Plan Storage Info */}
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4 text-gray-600" />
+                    <div>
+                      <p className="text-sm font-medium">Armazenamento</p>
+                      <p className="text-xs text-gray-600">
+                        {currentPlan ? formatBytes(parseInt(currentPlan.storageLimit)) : '2GB'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-600" />
+                    <div>
+                      <p className="text-sm font-medium">Chamadas API</p>
+                      <p className="text-xs text-gray-600">
+                        {currentPlan?.apiCallsPerHour || 100}/hora
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <ul className="space-y-2">
-                  {currentPlan?.features?.map((feature, index) => (
+                  {getPlanFeatures(user?.planId || 'basic').map((feature, index) => (
                     <li key={index} className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                       {feature}
@@ -275,7 +348,7 @@ export default function Subscription() {
                   </div>
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="text-2xl font-bold text-mega-text">
-                    {plan.price}
+                    €{plan.pricePerMonth}
                     <span className="text-sm font-normal text-gray-600">/mês</span>
                   </div>
                 </CardHeader>
@@ -283,20 +356,20 @@ export default function Subscription() {
                 <CardContent className="pt-0">
                   <div className="space-y-3 mb-6">
                     <div className="text-sm">
-                      <span className="font-medium">Armazenamento:</span> {plan.storageLimit}
+                      <span className="font-medium">Armazenamento:</span> {formatBytes(parseInt(plan.storageLimit))}
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Tamanho máximo:</span> {plan.maxFileSize}
+                      <span className="font-medium">Chamadas API:</span> {plan.apiCallsPerHour}/hora
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Chamadas API:</span> {plan.apiCallsLimit}
+                      <span className="font-medium">Preço:</span> €{plan.pricePerMonth}/mês
                     </div>
                   </div>
 
                   <Separator className="my-4" />
 
                   <ul className="space-y-2 mb-6">
-                    {plan.features?.map((feature, index) => (
+                    {getPlanFeatures(plan.id).map((feature, index) => (
                       <li key={index} className="flex items-center gap-2 text-sm">
                         <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                         {feature}
