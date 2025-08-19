@@ -43,7 +43,8 @@ export default function Register() {
         description: "Bem-vindo ao MEGA File Manager",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setCurrentStep(4); // Show success page
+      // Redirect to home after successful registration
+      setTimeout(() => navigate("/"), 1500);
     },
     onError: (error: any) => {
       toast({
@@ -67,6 +68,29 @@ export default function Register() {
   const handleLoginRedirect = () => {
     navigate("/");
   };
+
+  // Loading state during registration
+  if (registerMutation.isPending) {
+    return (
+      <div className="min-h-screen bg-mega-light flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-mega-text">
+              A criar conta...
+            </CardTitle>
+            <p className="text-gray-600 mt-2">
+              Aguarde enquanto configuramos a sua conta
+            </p>
+          </CardHeader>
+          <CardContent className="p-8">
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mega-red"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (currentStep === 1) {
     return (
