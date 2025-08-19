@@ -342,4 +342,357 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Memory storage implementation for development
+export class MemoryStorage implements IStorage {
+  private users = new Map<string, User>();
+  private plans = new Map<string, Plan>();
+  private apiKeys = new Map<string, ApiKey>();
+  private files = new Map<string, File>();
+  private megaCredentials: MegaCredentials | undefined;
+  private apiUsageEntries: ApiUsage[] = [];
+  private userSubscriptions = new Map<string, UserSubscription>();
+  private payments = new Map<string, Payment>();
+  private userSettings = new Map<string, UserSettings>();
+
+  constructor() {
+    // Initialize with default plans
+    this.initializeDefaultData();
+  }
+
+  private initializeDefaultData() {
+    const defaultPlans: Plan[] = [
+      {
+        id: 'basic',
+        name: 'Basic',
+        storageLimit: '5368709120', // 5GB
+        pricePerMonth: '0',
+        apiCallsPerHour: 100,
+        createdAt: new Date(),
+      },
+      {
+        id: 'pro',
+        name: 'Pro',
+        storageLimit: '53687091200', // 50GB
+        pricePerMonth: '9.99',
+        apiCallsPerHour: 1000,
+        createdAt: new Date(),
+      },
+      {
+        id: 'premium',
+        name: 'Premium',
+        storageLimit: '107374182400', // 100GB
+        pricePerMonth: '19.99',
+        apiCallsPerHour: 5000,
+        createdAt: new Date(),
+      },
+    ];
+
+    defaultPlans.forEach(plan => this.plans.set(plan.id, plan));
+
+    // Create admin user
+    const adminUser: User = {
+      id: 'admin-1',
+      email: 'admin@megafilemanager.com',
+      phone: null,
+      passwordHash: '$2b$10$rQZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9QZ9Q', // admin123
+      firstName: 'Admin',
+      lastName: 'User',
+      profileImageUrl: null,
+      planId: 'premium',
+      storageUsed: '0',
+      isAdmin: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(adminUser.id, adminUser);
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id);
+    const user: User = {
+      id: userData.id,
+      email: userData.email || null,
+      phone: userData.phone || null,
+      passwordHash: userData.passwordHash || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      planId: userData.planId || 'basic',
+      storageUsed: userData.storageUsed || '0',
+      isAdmin: userData.isAdmin || false,
+      createdAt: existingUser?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async createUser(userData: any): Promise<User> {
+    const user: User = {
+      id: randomUUID(),
+      ...userData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async getUserByEmailOrPhone(emailOrPhone: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => {
+      return (emailOrPhone.includes('@') && user.email === emailOrPhone) || 
+             (!emailOrPhone.includes('@') && user.phone === emailOrPhone);
+    });
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.phone === phone);
+  }
+
+  async getPlans(): Promise<Plan[]> {
+    return Array.from(this.plans.values()).sort((a, b) => 
+      parseInt(a.storageLimit) - parseInt(b.storageLimit)
+    );
+  }
+
+  async updateUserPlan(userId: string, planId: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.planId = planId;
+      user.updatedAt = new Date();
+      this.users.set(userId, user);
+    }
+  }
+
+  async createPlan(plan: InsertPlan): Promise<Plan> {
+    const newPlan: Plan = {
+      ...plan,
+      createdAt: new Date(),
+    };
+    this.plans.set(newPlan.id, newPlan);
+    return newPlan;
+  }
+
+  async updatePlan(id: string, planData: Partial<InsertPlan>): Promise<Plan> {
+    const existingPlan = this.plans.get(id);
+    if (!existingPlan) throw new Error('Plan not found');
+    
+    const updatedPlan: Plan = {
+      ...existingPlan,
+      ...planData,
+    };
+    this.plans.set(id, updatedPlan);
+    return updatedPlan;
+  }
+
+  async deletePlan(id: string): Promise<void> {
+    this.plans.delete(id);
+  }
+
+  async createApiKey(userId: string, name: string): Promise<{ apiKey: ApiKey; rawKey: string }> {
+    const rawKey = `mega_${randomUUID().replace(/-/g, '')}`;
+    const keyHash = await bcrypt.hash(rawKey, 10);
+    
+    const apiKey: ApiKey = {
+      id: randomUUID(),
+      userId,
+      keyHash,
+      name,
+      isActive: true,
+      lastUsed: null,
+      createdAt: new Date(),
+    };
+    
+    this.apiKeys.set(apiKey.id, apiKey);
+    return { apiKey, rawKey };
+  }
+
+  async getApiKeysByUserId(userId: string): Promise<ApiKey[]> {
+    return Array.from(this.apiKeys.values())
+      .filter(key => key.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async validateApiKey(rawKey: string): Promise<ApiKey | undefined> {
+    for (const key of this.apiKeys.values()) {
+      if (key.isActive && await bcrypt.compare(rawKey, key.keyHash)) {
+        return key;
+      }
+    }
+    return undefined;
+  }
+
+  async updateApiKeyLastUsed(id: string): Promise<void> {
+    const apiKey = this.apiKeys.get(id);
+    if (apiKey) {
+      apiKey.lastUsed = new Date();
+      this.apiKeys.set(id, apiKey);
+    }
+  }
+
+  async deleteApiKey(id: string): Promise<void> {
+    this.apiKeys.delete(id);
+  }
+
+  async createFile(file: InsertFile): Promise<File> {
+    const newFile: File = {
+      id: randomUUID(),
+      userId: file.userId,
+      megaFileId: file.megaFileId,
+      fileName: file.fileName,
+      fileSize: file.fileSize,
+      mimeType: file.mimeType || null,
+      filePath: file.filePath || null,
+      uploadedAt: new Date(),
+    };
+    this.files.set(newFile.id, newFile);
+    return newFile;
+  }
+
+  async getFilesByUserId(userId: string): Promise<File[]> {
+    return Array.from(this.files.values())
+      .filter(file => file.userId === userId)
+      .sort((a, b) => (b.uploadedAt?.getTime() || 0) - (a.uploadedAt?.getTime() || 0));
+  }
+
+  async getFileById(id: string): Promise<File | undefined> {
+    return this.files.get(id);
+  }
+
+  async deleteFile(id: string): Promise<void> {
+    this.files.delete(id);
+  }
+
+  async updateUserStorageUsed(userId: string, storageUsed: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.storageUsed = storageUsed;
+      user.updatedAt = new Date();
+      this.users.set(userId, user);
+    }
+  }
+
+  async getMegaCredentials(): Promise<MegaCredentials | undefined> {
+    return this.megaCredentials;
+  }
+
+  async upsertMegaCredentials(credentials: InsertMegaCredentials): Promise<MegaCredentials> {
+    const passwordHash = await bcrypt.hash(credentials.passwordHash, 10);
+    
+    this.megaCredentials = {
+      id: randomUUID(),
+      ...credentials,
+      passwordHash,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    return this.megaCredentials;
+  }
+
+  async logApiUsage(usage: Omit<ApiUsage, 'id' | 'timestamp'>): Promise<void> {
+    const apiUsageEntry: ApiUsage = {
+      id: randomUUID(),
+      ...usage,
+      timestamp: new Date(),
+    };
+    this.apiUsageEntries.push(apiUsageEntry);
+  }
+
+  async getApiUsageStats(userId: string): Promise<{ total: number; lastHour: number }> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const userUsage = this.apiUsageEntries.filter(usage => usage.userId === userId);
+    
+    return {
+      total: userUsage.length,
+      lastHour: userUsage.filter(usage => (usage.timestamp?.getTime() || 0) > oneHourAgo.getTime()).length,
+    };
+  }
+
+  async createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription> {
+    const result: UserSubscription = {
+      id: randomUUID(),
+      userId: subscription.userId,
+      planId: subscription.planId,
+      status: subscription.status || 'active',
+      startDate: subscription.startDate || new Date(),
+      endDate: subscription.endDate || null,
+      createdAt: new Date(),
+    };
+    this.userSubscriptions.set(result.id, result);
+    return result;
+  }
+
+  async getUserSubscriptions(userId: string): Promise<UserSubscription[]> {
+    return Array.from(this.userSubscriptions.values())
+      .filter(sub => sub.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const result: Payment = {
+      id: randomUUID(),
+      userId: payment.userId,
+      subscriptionId: payment.subscriptionId || null,
+      planId: payment.planId,
+      amount: payment.amount,
+      currency: payment.currency || 'EUR',
+      status: payment.status || 'pending',
+      paymentMethod: payment.paymentMethod || null,
+      transactionId: payment.transactionId || null,
+      receiptUrl: payment.receiptUrl || null,
+      createdAt: new Date(),
+      paidAt: payment.paidAt || null,
+    };
+    this.payments.set(result.id, result);
+    return result;
+  }
+
+  async getUserPayments(userId: string): Promise<Payment[]> {
+    return Array.from(this.payments.values())
+      .filter(payment => payment.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
+    return this.userSettings.get(userId);
+  }
+
+  async updateUserSettings(userId: string, settingsData: Partial<InsertUserSettings>): Promise<UserSettings> {
+    const existingSettings = this.userSettings.get(userId);
+    const result: UserSettings = {
+      id: existingSettings?.id || randomUUID(),
+      userId,
+      notifications: true,
+      theme: 'light',
+      language: 'pt',
+      timezone: 'Europe/Lisbon',
+      ...existingSettings,
+      ...settingsData,
+      updatedAt: new Date(),
+    };
+    this.userSettings.set(userId, result);
+    return result;
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.passwordHash = passwordHash;
+      user.updatedAt = new Date();
+      this.users.set(userId, user);
+    }
+  }
+}
+
+// Use database storage if available, otherwise use memory storage
+export const storage = db ? new DatabaseStorage() : new MemoryStorage();
