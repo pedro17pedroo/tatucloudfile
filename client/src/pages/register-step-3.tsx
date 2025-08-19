@@ -17,6 +17,7 @@ interface RegisterStep3Props {
 export default function RegisterStep3({ contactMethod, contactValue, onBack, onNext }: RegisterStep3Props) {
   const [otp, setOtp] = useState("");
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+  const [otpSent, setOtpSent] = useState(false); // Flag to prevent multiple OTP sends
   const { toast } = useToast();
 
   // Countdown timer
@@ -45,6 +46,7 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
         description: `Código de verificação enviado para ${contactValue}`,
       });
       setTimeLeft(300); // Reset timer
+      setOtpSent(true); // Mark as sent
     },
     onError: (error: any) => {
       toast({
@@ -52,6 +54,7 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
         description: error.message || "Tente novamente",
         variant: "destructive",
       });
+      setOtpSent(false); // Allow retry
     }
   });
 
@@ -87,14 +90,17 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
 
   const handleResend = () => {
     if (timeLeft === 0) {
+      setOtpSent(false); // Reset flag
       sendOtpMutation.mutate();
     }
   };
 
-  // Send OTP when component mounts
+  // Send OTP when component mounts (only once)
   useEffect(() => {
-    sendOtpMutation.mutate();
-  }, []);
+    if (!otpSent && !sendOtpMutation.isPending) {
+      sendOtpMutation.mutate();
+    }
+  }, [otpSent, sendOtpMutation.isPending]);
 
   return (
     <div className="min-h-screen bg-mega-light flex items-center justify-center p-4">

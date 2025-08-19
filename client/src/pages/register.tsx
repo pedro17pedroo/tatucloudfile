@@ -42,9 +42,12 @@ export default function Register() {
         title: "Conta criada com sucesso!",
         description: "Bem-vindo ao MEGA File Manager",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      // Redirect to home after successful registration
-      setTimeout(() => navigate("/"), 1500);
+      // Move to success step (step 4) instead of immediate redirect
+      setCurrentStep(4);
+      // Invalidate queries after a short delay to prevent issues during registration
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      }, 500);
     },
     onError: (error: any) => {
       toast({
@@ -66,6 +69,8 @@ export default function Register() {
   };
 
   const handleLoginRedirect = () => {
+    // Force a final query refresh before navigating to ensure user state is current
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     navigate("/");
   };
 
@@ -127,44 +132,49 @@ export default function Register() {
     );
   }
 
-  // Success page (step 4)
-  return (
-    <div className="min-h-screen bg-mega-light flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-mega-text">
-            Conta criada com sucesso!
-          </CardTitle>
-          <p className="text-gray-600 mt-2">
-            A sua conta foi criada e verificada. Pode agora aceder ao seu dashboard.
-          </p>
-        </CardHeader>
-
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Resumo da conta:</h4>
-              <div className="space-y-1 text-sm text-gray-600">
-                <div><strong>Nome:</strong> {formData.firstName} {formData.lastName}</div>
-                <div><strong>Contacto:</strong> {contactMethod === 'email' ? formData.email : formData.phone}</div>
-                <div><strong>Plano:</strong> {selectedPlan === 'basic' ? 'Basic' : selectedPlan === 'pro' ? 'Pro' : 'Premium'}</div>
-              </div>
+  if (currentStep === 4) {
+    // Success page (step 4)
+    return (
+      <div className="min-h-screen bg-mega-light flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            
-            <Button
-              onClick={handleLoginRedirect}
-              className="w-full bg-mega-red hover:bg-red-600 text-white"
-              data-testid="go-to-dashboard-button"
-            >
-              <Home className="h-4 w-4 mr-2" />
-              Ir para o Dashboard
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+            <CardTitle className="text-2xl font-bold text-mega-text">
+              Conta criada com sucesso!
+            </CardTitle>
+            <p className="text-gray-600 mt-2">
+              A sua conta foi criada e verificada. Pode agora aceder ao seu dashboard.
+            </p>
+          </CardHeader>
+
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Resumo da conta:</h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div><strong>Nome:</strong> {formData.firstName} {formData.lastName}</div>
+                  <div><strong>Contacto:</strong> {contactMethod === 'email' ? formData.email : formData.phone}</div>
+                  <div><strong>Plano:</strong> {selectedPlan === 'basic' ? 'Basic' : selectedPlan === 'pro' ? 'Pro' : 'Premium'}</div>
+                </div>
+              </div>
+              
+              <Button
+                onClick={handleLoginRedirect}
+                className="w-full bg-mega-red hover:bg-red-600 text-white"
+                data-testid="go-to-dashboard-button"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Ir para o Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Default fallback (should not happen)
+  return null;
 }
