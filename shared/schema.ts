@@ -73,6 +73,46 @@ export const files = pgTable("files", {
   uploadedAt: timestamp("uploaded_at").defaultNow(),
 });
 
+
+
+// Admin audit logs
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminUserId: varchar("admin_user_id").references(() => users.id).notNull(),
+  action: varchar("action").notNull(), // user_created, payment_approved, etc.
+  targetType: varchar("target_type").notNull(), // user, payment, api_key, etc.
+  targetId: varchar("target_id"),
+  oldValues: jsonb("old_values"),
+  newValues: jsonb("new_values"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// System settings
+export const systemSettings = pgTable("system_settings", {
+  key: varchar("key").primaryKey(),
+  value: text("value"),
+  description: text("description"),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// MEGA account monitoring
+export const megaAccountStatus = pgTable("mega_account_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  totalSpace: numeric("total_space"), // in bytes
+  usedSpace: numeric("used_space"), // in bytes
+  availableSpace: numeric("available_space"), // in bytes
+  accountType: varchar("account_type"), // free, pro, business
+  transferQuota: numeric("transfer_quota"), // in bytes
+  transferUsed: numeric("transfer_used"), // in bytes
+  isConnected: boolean("is_connected").default(false),
+  lastChecked: timestamp("last_checked").defaultNow(),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // MEGA credentials (admin only)
 export const megaCredentials = pgTable("mega_credentials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -91,8 +131,13 @@ export const apiUsage = pgTable("api_usage", {
   apiKeyId: varchar("api_key_id").references(() => apiKeys.id),
   endpoint: varchar("endpoint").notNull(),
   method: varchar("method").notNull(),
-  responseCode: integer("response_code").notNull(),
-  timestamp: timestamp("timestamp").defaultNow(),
+  statusCode: integer("status_code").notNull(),
+  responseTime: integer("response_time"), // in milliseconds
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  requestSize: integer("request_size"), // in bytes
+  responseSize: integer("response_size"), // in bytes
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // User subscription history
@@ -114,12 +159,16 @@ export const payments = pgTable("payments", {
   planId: varchar("plan_id").references(() => plans.id).notNull(),
   amount: numeric("amount").notNull(),
   currency: varchar("currency").default('EUR'),
-  status: varchar("status").default('pending'), // pending, completed, failed, refunded
-  paymentMethod: varchar("payment_method"), // card, paypal, bank_transfer
+  status: varchar("status").notNull().default('pending'), // pending, approved, rejected, completed
+  paymentMethod: varchar("payment_method").notNull(), // bank_transfer, stripe, other
   transactionId: varchar("transaction_id"),
+  bankReference: varchar("bank_reference"), // For bank transfers
+  notes: text("notes"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
   receiptUrl: varchar("receipt_url"),
   createdAt: timestamp("created_at").defaultNow(),
-  paidAt: timestamp("paid_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // User settings
@@ -195,3 +244,9 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = typeof systemSettings.$inferInsert;
+export type MegaAccountStatus = typeof megaAccountStatus.$inferSelect;
+export type InsertMegaAccountStatus = typeof megaAccountStatus.$inferInsert;

@@ -1,585 +1,931 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { Navigation } from "@/components/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { AlertTriangle, CheckCircle, Users, HardDrive, Activity, Plus, Edit2, Trash2, DollarSign } from "lucide-react";
-import type { Plan, InsertPlan } from "@shared/schema";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { AlertTriangle, CheckCircle, XCircle, Users, CreditCard, Key, Database, Settings, Activity, Eye, FileText, Trash2, Shield, RefreshCw, Download } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
-export default function Admin() {
+interface SystemStats {
+  totalUsers: number;
+  totalFiles: number;
+  totalStorage: string;
+  totalPayments: number;
+  pendingPayments: number;
+  apiCallsToday: number;
+  activeApiKeys: number;
+  megaAccountStatus?: {
+    isConnected: boolean;
+    totalSpace?: string;
+    usedSpace?: string;
+    availableSpace?: string;
+    accountType?: string;
+    lastChecked?: string;
+    error?: string;
+  };
+}
+
+interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  planId?: string;
+  plan?: { id: string; name: string; };
+  isAdmin: boolean;
+  totalFiles: number;
+  totalApiCalls: number;
+  paymentStatus: string;
+  createdAt: string;
+}
+
+interface Payment {
+  id: string;
+  userId: string;
+  planId: string;
+  amount: string;
+  paymentMethod: string;
+  status: string;
+  notes?: string;
+  user?: { email: string; firstName?: string; lastName?: string; };
+  plan?: { name: string; };
+  createdAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
+
+interface ApiKey {
+  id: string;
+  name: string;
+  userId: string;
+  isActive: boolean;
+  lastUsed?: string;
+  user?: { email: string; firstName?: string; lastName?: string; };
+  createdAt: string;
+}
+
+interface ApiUsage {
+  id: string;
+  userId: string;
+  apiKeyId: string;
+  endpoint: string;
+  responseTime: number;
+  statusCode: number;
+  user?: { email: string; };
+  apiKey?: { name: string; };
+  createdAt: string;
+}
+
+interface AuditLog {
+  id: string;
+  adminUserId: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  oldValues?: string;
+  newValues?: string;
+  ipAddress?: string;
+  admin?: { email: string; firstName?: string; lastName?: string; };
+  createdAt: string;
+}
+
+function formatBytes(bytes: string | number) {
+  const num = typeof bytes === 'string' ? parseInt(bytes) : bytes;
+  if (num === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(num) / Math.log(k));
+  return parseFloat((num / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatCurrency(amount: string) {
+  return new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(parseFloat(amount));
+}
+
+export default function AdminPanel() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [megaEmail, setMegaEmail] = useState("");
-  const [megaPassword, setMegaPassword] = useState("");
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [megaCredentials, setMegaCredentials] = useState({ email: '', password: '' });
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Plan management states
-  const [isCreatePlanOpen, setIsCreatePlanOpen] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [planForm, setPlanForm] = useState({
-    id: "",
-    name: "",
-    storageLimit: "",
-    pricePerMonth: "",
-    apiCallsPerHour: 100,
+  // Queries
+  const { data: stats, isLoading: statsLoading } = useQuery<SystemStats>({
+    queryKey: ['/api/portal/admin/dashboard'],
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
+  const { data: usersData, isLoading: usersLoading } = useQuery<{ users: User[], total: number }>({
+    queryKey: ['/api/portal/admin/users', searchQuery],
+    queryFn: () => apiRequest(`/api/portal/admin/users?search=${encodeURIComponent(searchQuery)}`),
+    enabled: activeTab === 'users',
+  });
+
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery<{ payments: Payment[], total: number }>({
+    queryKey: ['/api/portal/admin/payments'],
+    enabled: activeTab === 'payments',
+  });
+
+  const { data: apiKeysData, isLoading: apiKeysLoading } = useQuery<{ apiKeys: ApiKey[], total: number }>({
+    queryKey: ['/api/portal/admin/api-keys'],
+    enabled: activeTab === 'api',
+  });
+
+  const { data: apiUsageData, isLoading: apiUsageLoading } = useQuery<{ usage: ApiUsage[], total: number }>({
+    queryKey: ['/api/portal/admin/api-usage'],
+    enabled: activeTab === 'api',
+  });
+
+  const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery<{ logs: AuditLog[], total: number }>({
+    queryKey: ['/api/portal/admin/audit-logs'],
+    enabled: activeTab === 'audit',
+  });
+
+  const { data: megaCredentialsData } = useQuery({
+    queryKey: ['/api/portal/admin/mega-credentials'],
+    enabled: activeTab === 'mega',
+  });
+
+  // Mutations
+  const updatePaymentStatus = useMutation({
+    mutationFn: ({ paymentId, action, notes, reason }: { paymentId: string; action: 'approve' | 'reject'; notes?: string; reason?: string }) =>
+      apiRequest(`/api/portal/admin/payments/${paymentId}/status`, 'PUT', { action, notes, reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/payments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/dashboard'] });
+      toast({ title: 'Pagamento atualizado com sucesso' });
+      setSelectedPayment(null);
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar pagamento', variant: 'destructive' });
     }
-  }, [isAuthenticated, isLoading, toast]);
+  });
 
-  // Check if user is admin
-  useEffect(() => {
-    if (user && !user.isAdmin) {
-      toast({
-        title: "Access Denied",
-        description: "Admin access required",
-        variant: "destructive",
-      });
+  const suspendUser = useMutation({
+    mutationFn: (userId: string) => apiRequest(`/api/portal/admin/users/${userId}/suspend`, 'POST'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/users'] });
+      toast({ title: 'Utilizador suspenso com sucesso' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao suspender utilizador', variant: 'destructive' });
     }
-  }, [user, toast]);
+  });
 
-  const updateMegaCredentialsMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("/api/portal/admin/mega-credentials", "POST", {
-        email: megaEmail,
-        password: megaPassword,
-      });
-    },
+  const revokeApiKey = useMutation({
+    mutationFn: (keyId: string) => apiRequest(`/api/portal/admin/api-keys/${keyId}`, 'DELETE'),
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "MEGA credentials updated successfully",
-      });
-      setMegaPassword(""); // Clear password for security
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/api-keys'] });
+      toast({ title: 'Chave API revogada com sucesso' });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update MEGA credentials",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Fetch plans
-  const { data: plans = [], refetch: refetchPlans } = useQuery<Plan[]>({
-    queryKey: ["/api/portal/plans"],
-  });
-
-  // Plan mutations
-  const createPlanMutation = useMutation({
-    mutationFn: async (data: InsertPlan) => {
-      return apiRequest("/api/portal/admin/plans", "POST", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plano criado com sucesso",
-        description: "O novo plano foi adicionado ao sistema.",
-      });
-      setIsCreatePlanOpen(false);
-      resetPlanForm();
-      refetchPlans();
-      queryClient.invalidateQueries({ queryKey: ["/api/portal/plans"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao criar plano",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updatePlanMutation = useMutation({
-    mutationFn: async (data: { id: string; plan: Partial<InsertPlan> }) => {
-      return apiRequest(`/api/admin/plans/${data.id}`, "PUT", data.plan);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plano atualizado com sucesso",
-        description: "As alterações foram guardadas.",
-      });
-      setEditingPlan(null);
-      resetPlanForm();
-      refetchPlans();
-      queryClient.invalidateQueries({ queryKey: ["/api/portal/plans"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao atualizar plano",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deletePlanMutation = useMutation({
-    mutationFn: async (planId: string) => {
-      return apiRequest(`/api/admin/plans/${planId}`, "DELETE");
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plano eliminado com sucesso",
-        description: "O plano foi removido do sistema.",
-      });
-      refetchPlans();
-      queryClient.invalidateQueries({ queryKey: ["/api/portal/plans"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao eliminar plano",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Plan form handlers
-  const resetPlanForm = () => {
-    setPlanForm({
-      id: "",
-      name: "",
-      storageLimit: "",
-      pricePerMonth: "",
-      apiCallsPerHour: 100,
-    });
-  };
-
-  const openEditPlan = (plan: Plan) => {
-    setEditingPlan(plan);
-    setPlanForm({
-      id: plan.id,
-      name: plan.name,
-      storageLimit: plan.storageLimit,
-      pricePerMonth: plan.pricePerMonth,
-      apiCallsPerHour: plan.apiCallsPerHour,
-    });
-  };
-
-  const handleCreatePlan = () => {
-    createPlanMutation.mutate(planForm);
-  };
-
-  const handleUpdatePlan = () => {
-    if (editingPlan) {
-      updatePlanMutation.mutate({
-        id: editingPlan.id,
-        plan: planForm,
-      });
+    onError: () => {
+      toast({ title: 'Erro ao revogar chave API', variant: 'destructive' });
     }
-  };
+  });
 
-  const formatStorageDisplay = (bytes: string) => {
-    const size = parseInt(bytes);
-    const gb = size / (1024 * 1024 * 1024);
-    return `${gb}GB`;
-  };
+  const updateMegaCredentials = useMutation({
+    mutationFn: () => apiRequest('/api/portal/admin/mega-credentials', 'POST', megaCredentials),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/mega-credentials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/dashboard'] });
+      toast({ title: 'Credenciais MEGA atualizadas com sucesso' });
+      setMegaCredentials({ email: '', password: '' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar credenciais MEGA', variant: 'destructive' });
+    }
+  });
 
-  const formatPriceDisplay = (price: string) => {
-    const priceNum = parseFloat(price);
-    return priceNum === 0 ? "Grátis" : `€${priceNum}/mês`;
-  };
+  const refreshMegaStatus = useMutation({
+    mutationFn: () => apiRequest('/api/portal/admin/mega-status/refresh', 'POST'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/dashboard'] });
+      toast({ title: 'Estado MEGA atualizado com sucesso' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar estado MEGA', variant: 'destructive' });
+    }
+  });
 
-  if (isLoading || !isAuthenticated) {
+  // Dashboard Statistics Cards
+  const StatsCard = ({ title, value, icon: Icon, color, description }: {
+    title: string;
+    value: string | number;
+    icon: any;
+    color: string;
+    description?: string;
+  }) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className={`h-4 w-4 ${color}`} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </CardContent>
+    </Card>
+  );
+
+  // Payment Status Badge
+  const PaymentStatusBadge = ({ status }: { status: string }) => {
+    const variants = {
+      pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      approved: 'bg-green-100 text-green-800 border-green-200',
+      rejected: 'bg-red-100 text-red-800 border-red-200',
+    };
     return (
-      <div className="min-h-screen bg-mega-light flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mega-red mx-auto mb-4"></div>
-          <p className="text-mega-text">Loading...</p>
-        </div>
-      </div>
+      <Badge className={variants[status as keyof typeof variants] || 'bg-gray-100 text-gray-800'}>
+        {status === 'pending' ? 'Pendente' : status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+      </Badge>
     );
-  }
-
-  if (!user?.isAdmin) {
-    return (
-      <div className="min-h-screen bg-mega-light">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Admin access required to view this page.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2" data-testid="admin-title">
-            Painel de Administração
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Gerir credenciais MEGA, planos e configuração do sistema
-          </p>
-        </div>
+    <div className="container mx-auto py-6 space-y-6" data-testid="admin-panel">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Painel Administrativo</h1>
+        <Badge variant="outline" className="text-green-600 border-green-600">
+          <Shield className="w-3 h-3 mr-1" />
+          Administrador
+        </Badge>
+      </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full max-w-md">
-            <TabsTrigger value="overview">Resumo</TabsTrigger>
-            <TabsTrigger value="plans">Planos</TabsTrigger>
-            <TabsTrigger value="mega">MEGA Config</TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="dashboard" data-testid="tab-dashboard">
+            <Activity className="w-4 h-4 mr-2" />
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users">
+            <Users className="w-4 h-4 mr-2" />
+            Utilizadores
+          </TabsTrigger>
+          <TabsTrigger value="payments" data-testid="tab-payments">
+            <CreditCard className="w-4 h-4 mr-2" />
+            Pagamentos
+          </TabsTrigger>
+          <TabsTrigger value="api" data-testid="tab-api">
+            <Key className="w-4 h-4 mr-2" />
+            API
+          </TabsTrigger>
+          <TabsTrigger value="mega" data-testid="tab-mega">
+            <Database className="w-4 h-4 mr-2" />
+            MEGA
+          </TabsTrigger>
+          <TabsTrigger value="audit" data-testid="tab-audit">
+            <FileText className="w-4 h-4 mr-2" />
+            Auditoria
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid md:grid-cols-4 gap-6">
-              <Card data-testid="stat-users">
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <Users className="h-8 w-8 text-[#D9272E]" />
-                    <div className="ml-4">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Total de Utilizadores</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card data-testid="stat-storage">
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <HardDrive className="h-8 w-8 text-green-500" />
-                    <div className="ml-4">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">0 GB</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Armazenamento Usado</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card data-testid="stat-api-calls">
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <Activity className="h-8 w-8 text-mega-green" />
-                    <div className="ml-4">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Chamadas API (24h)</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card data-testid="stat-status">
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-8 w-8 text-green-500" />
-                    <div className="ml-4">
-                      <p className="text-lg font-bold text-gray-900 dark:text-white">Operacional</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Estado do Sistema</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Plans Management Tab */}
-          <TabsContent value="plans" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Planos</h2>
-              <Dialog open={isCreatePlanOpen} onOpenChange={setIsCreatePlanOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => resetPlanForm()} data-testid="button-create-plan">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Plano
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Plano</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="plan-id">ID do Plano</Label>
-                      <Input
-                        id="plan-id"
-                        value={planForm.id}
-                        onChange={(e) => setPlanForm(prev => ({ ...prev, id: e.target.value }))}
-                        placeholder="ex: starter, pro, enterprise"
-                        data-testid="input-plan-id"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="plan-name">Nome do Plano</Label>
-                      <Input
-                        id="plan-name"
-                        value={planForm.name}
-                        onChange={(e) => setPlanForm(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="ex: Starter, Pro, Enterprise"
-                        data-testid="input-plan-name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="storage-limit">Limite de Armazenamento (bytes)</Label>
-                      <Input
-                        id="storage-limit"
-                        value={planForm.storageLimit}
-                        onChange={(e) => setPlanForm(prev => ({ ...prev, storageLimit: e.target.value }))}
-                        placeholder="ex: 2147483648 (2GB)"
-                        data-testid="input-storage-limit"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="price">Preço por Mês (€)</Label>
-                      <Input
-                        id="price"
-                        value={planForm.pricePerMonth}
-                        onChange={(e) => setPlanForm(prev => ({ ...prev, pricePerMonth: e.target.value }))}
-                        placeholder="ex: 9.99"
-                        data-testid="input-price"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="api-calls">Chamadas API por Hora</Label>
-                      <Input
-                        id="api-calls"
-                        type="number"
-                        value={planForm.apiCallsPerHour}
-                        onChange={(e) => setPlanForm(prev => ({ ...prev, apiCallsPerHour: parseInt(e.target.value) || 100 }))}
-                        placeholder="ex: 1000"
-                        data-testid="input-api-calls"
-                      />
-                    </div>
-                    <Button 
-                      onClick={handleCreatePlan}
-                      disabled={createPlanMutation.isPending}
-                      className="w-full"
-                      data-testid="button-save-plan"
-                    >
-                      {createPlanMutation.isPending ? "A criar..." : "Criar Plano"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {plans.map((plan) => (
-                <Card key={plan.id} className="relative" data-testid={`card-plan-${plan.id}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{plan.name}</CardTitle>
-                        <Badge variant="outline" className="mt-1">{plan.id}</Badge>
-                      </div>
-                      <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditPlan(plan)}
-                          data-testid={`button-edit-plan-${plan.id}`}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deletePlanMutation.mutate(plan.id)}
-                          data-testid={`button-delete-plan-${plan.id}`}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard" className="space-y-6">
+          {statsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader className="space-y-0 pb-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">Preço:</span>
-                      <span className="font-semibold">{formatPriceDisplay(plan.pricePerMonth)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">Armazenamento:</span>
-                      <span className="font-semibold">{formatStorageDisplay(plan.storageLimit)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">API/hora:</span>
-                      <span className="font-semibold">{plan.apiCallsPerHour}</span>
-                    </div>
+                  <CardContent>
+                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatsCard
+                  title="Total de Utilizadores"
+                  value={stats?.totalUsers || 0}
+                  icon={Users}
+                  color="text-blue-600"
+                />
+                <StatsCard
+                  title="Ficheiros Armazenados"
+                  value={stats?.totalFiles || 0}
+                  icon={FileText}
+                  color="text-green-600"
+                />
+                <StatsCard
+                  title="Pagamentos Pendentes"
+                  value={stats?.pendingPayments || 0}
+                  icon={CreditCard}
+                  color="text-yellow-600"
+                />
+                <StatsCard
+                  title="Chaves API Ativas"
+                  value={stats?.activeApiKeys || 0}
+                  icon={Key}
+                  color="text-purple-600"
+                />
+              </div>
 
-            {/* Edit Plan Dialog */}
-            <Dialog open={!!editingPlan} onOpenChange={(open) => !open && setEditingPlan(null)}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Editar Plano: {editingPlan?.name}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="edit-plan-name">Nome do Plano</Label>
-                    <Input
-                      id="edit-plan-name"
-                      value={planForm.name}
-                      onChange={(e) => setPlanForm(prev => ({ ...prev, name: e.target.value }))}
-                      data-testid="input-edit-plan-name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-storage-limit">Limite de Armazenamento (bytes)</Label>
-                    <Input
-                      id="edit-storage-limit"
-                      value={planForm.storageLimit}
-                      onChange={(e) => setPlanForm(prev => ({ ...prev, storageLimit: e.target.value }))}
-                      data-testid="input-edit-storage-limit"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-price">Preço por Mês (€)</Label>
-                    <Input
-                      id="edit-price"
-                      value={planForm.pricePerMonth}
-                      onChange={(e) => setPlanForm(prev => ({ ...prev, pricePerMonth: e.target.value }))}
-                      data-testid="input-edit-price"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-api-calls">Chamadas API por Hora</Label>
-                    <Input
-                      id="edit-api-calls"
-                      type="number"
-                      value={planForm.apiCallsPerHour}
-                      onChange={(e) => setPlanForm(prev => ({ ...prev, apiCallsPerHour: parseInt(e.target.value) || 100 }))}
-                      data-testid="input-edit-api-calls"
-                    />
-                  </div>
-                  <Button 
-                    onClick={handleUpdatePlan}
-                    disabled={updatePlanMutation.isPending}
-                    className="w-full"
-                    data-testid="button-update-plan"
-                  >
-                    {updatePlanMutation.isPending ? "A guardar..." : "Guardar Alterações"}
-                  </Button>
+              {/* MEGA Status Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Database className="w-5 h-5 mr-2 text-green-600" />
+                    Estado da Conta MEGA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {stats?.megaAccountStatus ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        {stats.megaAccountStatus.isConnected ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-600" />
+                        )}
+                        <span className={stats.megaAccountStatus.isConnected ? 'text-green-600' : 'text-red-600'}>
+                          {stats.megaAccountStatus.isConnected ? 'Conectado' : 'Desconectado'}
+                        </span>
+                      </div>
+
+                      {stats.megaAccountStatus.isConnected && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-500">Espaço Total</p>
+                            <p className="font-semibold">{formatBytes(stats.megaAccountStatus.totalSpace || '0')}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Espaço Usado</p>
+                            <p className="font-semibold">{formatBytes(stats.megaAccountStatus.usedSpace || '0')}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Espaço Disponível</p>
+                            <p className="font-semibold">{formatBytes(stats.megaAccountStatus.availableSpace || '0')}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Tipo de Conta</p>
+                            <p className="font-semibold capitalize">{stats.megaAccountStatus.accountType}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {stats.megaAccountStatus.error && (
+                        <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                          <div className="flex items-center">
+                            <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+                            <p className="text-red-800 text-sm">{stats.megaAccountStatus.error}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>
+                          Última verificação: {new Date(stats.megaAccountStatus.lastChecked || '').toLocaleString('pt-PT')}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => refreshMegaStatus.mutate()}
+                          disabled={refreshMegaStatus.isPending}
+                          data-testid="button-refresh-mega"
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-1 ${refreshMegaStatus.isPending ? 'animate-spin' : ''}`} />
+                          Atualizar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">Estado MEGA não disponível</p>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gestão de Utilizadores</CardTitle>
+              <CardDescription>
+                Gerir contas de utilizadores, planos e atividade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2 mb-4">
+                <Input
+                  placeholder="Pesquisar utilizadores..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-sm"
+                  data-testid="input-search-users"
+                />
+              </div>
+
+              {usersLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
                 </div>
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Utilizador</TableHead>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Ficheiros</TableHead>
+                      <TableHead>API Calls</TableHead>
+                      <TableHead>Estado Pagamento</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {usersData?.users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{user.email}</p>
+                            {(user.firstName || user.lastName) && (
+                              <p className="text-sm text-gray-500">
+                                {user.firstName} {user.lastName}
+                              </p>
+                            )}
+                            {user.isAdmin && (
+                              <Badge variant="outline" className="text-xs mt-1">Admin</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {user.plan ? (
+                            <Badge variant="outline">{user.plan.name}</Badge>
+                          ) : (
+                            <span className="text-gray-400">Sem plano</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{user.totalFiles}</TableCell>
+                        <TableCell>{user.totalApiCalls}</TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge status={user.paymentStatus} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedUser(user)}
+                              data-testid={`button-view-user-${user.id}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {!user.isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => suspendUser.mutate(user.id)}
+                                disabled={suspendUser.isPending}
+                                data-testid={`button-suspend-user-${user.id}`}
+                              >
+                                <Shield className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* MEGA Configuration Tab */}
-          <TabsContent value="mega" className="space-y-6">
-            <Card data-testid="mega-config-card">
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gestão de Pagamentos</CardTitle>
+              <CardDescription>
+                Aprovar ou rejeitar transferências bancárias (1-3 dias de processamento)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Utilizador</TableHead>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentsData?.payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{payment.user?.email}</p>
+                            {(payment.user?.firstName || payment.user?.lastName) && (
+                              <p className="text-sm text-gray-500">
+                                {payment.user.firstName} {payment.user.lastName}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {payment.plan && (
+                            <Badge variant="outline">{payment.plan.name}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(payment.amount)}
+                        </TableCell>
+                        <TableCell className="capitalize">{payment.paymentMethod}</TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge status={payment.status} />
+                        </TableCell>
+                        <TableCell>
+                          {new Date(payment.createdAt).toLocaleDateString('pt-PT')}
+                        </TableCell>
+                        <TableCell>
+                          {payment.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedPayment(payment)}
+                              data-testid={`button-review-payment-${payment.id}`}
+                            >
+                              Revisar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* API Management Tab */}
+        <TabsContent value="api" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* API Keys */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white">Configuração da Conta MEGA</CardTitle>
+                <CardTitle>Chaves API</CardTitle>
+                <CardDescription>Gestão de credenciais de desenvolvedor</CardDescription>
               </CardHeader>
               <CardContent>
-                <Alert className="mb-6">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    As credenciais de admin são necessárias para conectar todos os ficheiros dos utilizadores a uma conta MEGA centralizada
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <Label htmlFor="mega-email" className="text-gray-900 dark:text-white">Email MEGA</Label>
-                    <Input
-                      id="mega-email"
-                      type="email"
-                      value={megaEmail}
-                      onChange={(e) => setMegaEmail(e.target.value)}
-                      placeholder="admin@empresa.com"
-                      className="mt-1"
-                      data-testid="mega-email-input"
-                    />
+                {apiKeysLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                    ))}
                   </div>
-                  <div>
-                    <Label htmlFor="mega-password" className="text-gray-900 dark:text-white">Password MEGA</Label>
-                    <Input
-                      id="mega-password"
-                      type="password"
-                      value={megaPassword}
-                      onChange={(e) => setMegaPassword(e.target.value)}
-                      placeholder="••••••••••"
-                      className="mt-1"
-                      data-testid="mega-password-input"
-                    />
+                ) : (
+                  <div className="space-y-3">
+                    {apiKeysData?.apiKeys.slice(0, 5).map((apiKey) => (
+                      <div key={apiKey.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{apiKey.name}</p>
+                          <p className="text-sm text-gray-500">{apiKey.user?.email}</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant={apiKey.isActive ? 'default' : 'secondary'}>
+                              {apiKey.isActive ? 'Ativa' : 'Inativa'}
+                            </Badge>
+                            {apiKey.lastUsed && (
+                              <span className="text-xs text-gray-400">
+                                Usado: {new Date(apiKey.lastUsed).toLocaleDateString('pt-PT')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {apiKey.isActive && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => revokeApiKey.mutate(apiKey.id)}
+                            disabled={revokeApiKey.isPending}
+                            data-testid={`button-revoke-apikey-${apiKey.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                </div>
-                
-                <div className="flex space-x-4">
-                  <Button
-                    onClick={() => updateMegaCredentialsMutation.mutate()}
-                    disabled={!megaEmail || !megaPassword || updateMegaCredentialsMutation.isPending}
-                    className="bg-mega-green hover:bg-green-600 text-white"
-                    data-testid="save-credentials-button"
-                  >
-                    {updateMegaCredentialsMutation.isPending ? "A testar..." : "Testar e Guardar Credenciais"}
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* System Health */}
-            <Card data-testid="system-health-card">
+            {/* API Usage */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white">Estado do Sistema</CardTitle>
+                <CardTitle>Uso da API</CardTitle>
+                <CardDescription>Monitorização de atividade</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Estado da Conexão MEGA</h4>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">Pronto para Configuração</span>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Configure as credenciais acima</div>
+                {apiUsageLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                    ))}
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Performance da API</h4>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">Sistema Online</span>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">99.9% uptime</div>
+                ) : (
+                  <div className="space-y-3">
+                    {apiUsageData?.usage.slice(0, 5).map((usage) => (
+                      <div key={usage.id} className="p-3 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{usage.endpoint}</p>
+                            <p className="text-sm text-gray-500">{usage.user?.email}</p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={usage.statusCode < 400 ? 'default' : 'destructive'}>
+                              {usage.statusCode}
+                            </Badge>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {usage.responseTime}ms
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(usage.createdAt).toLocaleString('pt-PT')}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </TabsContent>
+
+        {/* MEGA Management Tab */}
+        <TabsContent value="mega" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuração MEGA</CardTitle>
+              <CardDescription>
+                Gerir credenciais e monitorizar estado da conta MEGA
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="mega-email">Email MEGA</Label>
+                  <Input
+                    id="mega-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={megaCredentials.email}
+                    onChange={(e) => setMegaCredentials(prev => ({ ...prev, email: e.target.value }))}
+                    data-testid="input-mega-email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="mega-password">Password MEGA</Label>
+                  <Input
+                    id="mega-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={megaCredentials.password}
+                    onChange={(e) => setMegaCredentials(prev => ({ ...prev, password: e.target.value }))}
+                    data-testid="input-mega-password"
+                  />
+                </div>
+                <Button
+                  onClick={() => updateMegaCredentials.mutate()}
+                  disabled={updateMegaCredentials.isPending || !megaCredentials.email || !megaCredentials.password}
+                  data-testid="button-update-mega-credentials"
+                >
+                  {updateMegaCredentials.isPending ? 'A atualizar...' : 'Atualizar Credenciais'}
+                </Button>
+              </div>
+
+              {megaCredentialsData?.credentials && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                    <div>
+                      <p className="font-medium text-green-800">Credenciais Configuradas</p>
+                      <p className="text-sm text-green-600">Email: {megaCredentialsData.credentials.email}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Audit Logs Tab */}
+        <TabsContent value="audit" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Logs de Auditoria</CardTitle>
+              <CardDescription>
+                Histórico de ações administrativas no sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {auditLogsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Administrador</TableHead>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Alvo</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>IP</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {auditLogsData?.logs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{log.admin?.email}</p>
+                            {(log.admin?.firstName || log.admin?.lastName) && (
+                              <p className="text-sm text-gray-500">
+                                {log.admin.firstName} {log.admin.lastName}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {log.action.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm">{log.targetType}</p>
+                            <p className="text-xs text-gray-500">{log.targetId}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(log.createdAt).toLocaleString('pt-PT')}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {log.ipAddress || 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Payment Review Dialog */}
+      <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
+        <DialogContent data-testid="dialog-payment-review">
+          <DialogHeader>
+            <DialogTitle>Revisar Pagamento</DialogTitle>
+            <DialogDescription>
+              Aprovar ou rejeitar transferência bancária
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Utilizador</Label>
+                  <p className="font-medium">{selectedPayment.user?.email}</p>
+                </div>
+                <div>
+                  <Label>Plano</Label>
+                  <p className="font-medium">{selectedPayment.plan?.name}</p>
+                </div>
+                <div>
+                  <Label>Valor</Label>
+                  <p className="font-medium">{formatCurrency(selectedPayment.amount)}</p>
+                </div>
+                <div>
+                  <Label>Método</Label>
+                  <p className="font-medium capitalize">{selectedPayment.paymentMethod}</p>
+                </div>
+              </div>
+              
+              <div className="flex space-x-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => updatePaymentStatus.mutate({
+                    paymentId: selectedPayment.id,
+                    action: 'approve',
+                    notes: 'Transferência bancária verificada e aprovada'
+                  })}
+                  disabled={updatePaymentStatus.isPending}
+                  data-testid="button-approve-payment"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Aprovar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => updatePaymentStatus.mutate({
+                    paymentId: selectedPayment.id,
+                    action: 'reject',
+                    reason: 'Transferência bancária não verificada'
+                  })}
+                  disabled={updatePaymentStatus.isPending}
+                  data-testid="button-reject-payment"
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Rejeitar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Dialog */}
+      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+        <DialogContent data-testid="dialog-user-details">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Utilizador</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Email</Label>
+                  <p className="font-medium">{selectedUser.email}</p>
+                </div>
+                <div>
+                  <Label>Nome</Label>
+                  <p className="font-medium">
+                    {selectedUser.firstName} {selectedUser.lastName}
+                  </p>
+                </div>
+                <div>
+                  <Label>Plano</Label>
+                  <p className="font-medium">{selectedUser.plan?.name || 'Sem plano'}</p>
+                </div>
+                <div>
+                  <Label>Tipo</Label>
+                  <p className="font-medium">{selectedUser.isAdmin ? 'Administrador' : 'Utilizador'}</p>
+                </div>
+                <div>
+                  <Label>Ficheiros</Label>
+                  <p className="font-medium">{selectedUser.totalFiles}</p>
+                </div>
+                <div>
+                  <Label>Chamadas API</Label>
+                  <p className="font-medium">{selectedUser.totalApiCalls}</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Estado do Pagamento</Label>
+                <div className="mt-1">
+                  <PaymentStatusBadge status={selectedUser.paymentStatus} />
+                </div>
+              </div>
+
+              <div>
+                <Label>Data de Registo</Label>
+                <p className="font-medium">
+                  {new Date(selectedUser.createdAt).toLocaleString('pt-PT')}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

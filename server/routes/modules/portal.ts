@@ -57,11 +57,46 @@ portalRouter.get('/billing/receipt/:paymentId', BillingController.downloadReceip
 // Plans (moved to auth routes for public access during registration)
 
 // Admin routes
-portalRouter.use('/admin', isAdmin);
+portalRouter.use('/admin', AdminController.checkAdminAccess);
+
+// Dashboard & Statistics
+portalRouter.get('/admin/dashboard', AdminController.getDashboard);
+portalRouter.get('/admin/stats', AdminController.getDashboard);
+
+// User Management
+portalRouter.get('/admin/users', AdminController.getUsers);
+portalRouter.get('/admin/users/:userId', AdminController.getUserDetails);
+portalRouter.put('/admin/users/:userId', AdminController.updateUser);
+portalRouter.post('/admin/users/:userId/suspend', AdminController.suspendUser);
+
+// Payment Management
+portalRouter.get('/admin/payments', AdminController.getPayments);
+portalRouter.put('/admin/payments/:paymentId/status', AdminController.updatePaymentStatus);
+
+// API Management
+portalRouter.get('/admin/api-keys', AdminController.getApiKeys);
+portalRouter.get('/admin/api-usage', AdminController.getApiUsage);
+portalRouter.delete('/admin/api-keys/:keyId', AdminController.revokeApiKey);
+
+// MEGA Management
 portalRouter.get('/admin/mega-credentials', AdminController.getMegaCredentials);
 portalRouter.post('/admin/mega-credentials', AdminController.updateMegaCredentials);
-portalRouter.get('/admin/stats', AdminController.getSystemStats);
+portalRouter.get('/admin/mega-status', AdminController.getMegaAccountStatus);
+portalRouter.post('/admin/mega-status/refresh', AdminController.refreshMegaAccountStatus);
+
+// Audit Logs
+portalRouter.get('/admin/audit-logs', AdminController.getAuditLogs);
+
+// Plan Management
+portalRouter.get('/admin/plans', AdminController.getPlans);
 portalRouter.post('/admin/plans', AdminController.createPlan);
+portalRouter.put('/admin/plans/:planId', AdminController.updatePlan);
+portalRouter.delete('/admin/plans/:planId', AdminController.deletePlan);
+
+// Reports & Analytics
+portalRouter.get('/admin/reports/:type', AdminController.generateReport);
+
+// Legacy routes for seed functionality
 portalRouter.post('/admin/seed', SeedController.seedDatabase);
 portalRouter.post('/admin/create-test-api-key', SeedController.createTestApiKey);
 
