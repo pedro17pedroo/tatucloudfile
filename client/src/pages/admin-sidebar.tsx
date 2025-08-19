@@ -175,6 +175,19 @@ export function AdminPanelWithSidebar() {
     isActive: true,
     configuration: { processingTime: '', fees: '', description: '' }
   });
+  
+  // User management states
+  const [userForm, setUserForm] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    planId: 'basic',
+    isAdmin: false
+  });
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showEditUser, setShowEditUser] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -233,6 +246,65 @@ export function AdminPanelWithSidebar() {
       return await response.json();
     },
     enabled: activeTab === 'payment-methods',
+  });
+
+  // User management mutations
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: typeof userForm) => {
+      const response = await apiRequest('/api/portal/admin/users', 'POST', userData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/users'] });
+      setUserForm({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        planId: 'basic',
+        isAdmin: false
+      });
+      toast({ title: "Utilizador criado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao criar utilizador", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, userData }: { userId: string; userData: Partial<typeof userForm> }) => {
+      const response = await apiRequest(`/api/portal/admin/users/${userId}`, 'PUT', userData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/users'] });
+      setSelectedUser(null);
+      toast({ title: "Utilizador atualizado com sucesso!" });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest(`/api/portal/admin/users/${userId}/reset-password`, 'POST');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Password resetada!", 
+        description: `Nova password: ${data.temporaryPassword}` 
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest(`/api/portal/admin/users/${userId}`, 'DELETE');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/users'] });
+      toast({ title: "Utilizador eliminado com sucesso!" });
+    },
   });
 
   // Payment Status Badge
@@ -403,68 +475,280 @@ export function AdminPanelWithSidebar() {
 
       case 'users':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Utilizadores Registados</CardTitle>
-              <CardDescription>
-                Gerir utilizadores e as suas subscrições
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {usersLoading ? (
-                <div className="text-center py-8">A carregar utilizadores...</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Utilizador</TableHead>
-                      <TableHead>Plano</TableHead>
-                      <TableHead>Ficheiros</TableHead>
-                      <TableHead>API Calls</TableHead>
-                      <TableHead>Estado Pagamento</TableHead>
-                      <TableHead>Registado</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {usersData?.users?.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div>
-                            <div className="flex items-center">
-                              <span className="font-medium">{user.email}</span>
-                              {user.isAdmin && <Shield className="w-4 h-4 ml-2 text-green-600" />}
-                            </div>
-                            {user.firstName && user.lastName && (
-                              <span className="text-sm text-gray-500">
-                                {user.firstName} {user.lastName}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {user.plan?.name || user.planId || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{user.totalFiles}</TableCell>
-                        <TableCell>{user.totalApiCalls}</TableCell>
-                        <TableCell>
-                          <PaymentStatusBadge status={user.paymentStatus} />
-                        </TableCell>
-                        <TableCell>{formatDate(user.createdAt)}</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-medium">Gestão de Utilizadores</h3>
+                <p className="text-sm text-gray-500">Gerir utilizadores e as suas subscrições</p>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Utilizador
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Utilizador</DialogTitle>
+                    <DialogDescription>
+                      Adicionar um novo utilizador ao sistema
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="user-email">Email *</Label>
+                      <Input
+                        id="user-email"
+                        type="email"
+                        placeholder="utilizador@exemplo.com"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="user-password">Password *</Label>
+                      <Input
+                        id="user-password"
+                        type="password"
+                        placeholder="Password segura"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="user-firstname">Primeiro Nome</Label>
+                        <Input
+                          id="user-firstname"
+                          placeholder="João"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="user-lastname">Último Nome</Label>
+                        <Input
+                          id="user-lastname"
+                          placeholder="Silva"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="user-plan">Plano</Label>
+                      <Select value={userForm.planId} onValueChange={(value) => setUserForm({...userForm, planId: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar plano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {plansData?.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id}>
+                              {plan.name} - €{parseFloat(plan.pricePerMonth).toFixed(2)}/mês
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="user-admin"
+                        className="rounded"
+                      />
+                      <Label htmlFor="user-admin" className="flex items-center">
+                        <Shield className="w-4 h-4 mr-2 text-green-600" />
+                        Privilégios de Administrador
+                      </Label>
+                    </div>
+                    <Button 
+                      className="w-full"
+                      onClick={() => {
+                        const email = (document.getElementById('user-email') as HTMLInputElement).value;
+                        const password = (document.getElementById('user-password') as HTMLInputElement).value;
+                        const firstName = (document.getElementById('user-firstname') as HTMLInputElement).value;
+                        const lastName = (document.getElementById('user-lastname') as HTMLInputElement).value;
+                        const planSelect = document.querySelector('div[role="combobox"]') as HTMLElement;
+                        const planId = userForm.planId;
+                        const isAdmin = (document.getElementById('user-admin') as HTMLInputElement).checked;
+                        
+                        if (email && password) {
+                          createUserMutation.mutate({
+                            email, password, firstName, lastName, planId, isAdmin
+                          });
+                        }
+                      }}
+                      disabled={createUserMutation.isPending}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {createUserMutation.isPending ? 'A criar...' : 'Criar Utilizador'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {usersLoading ? (
+                  <div className="text-center py-8">A carregar utilizadores...</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Utilizador</TableHead>
+                        <TableHead>Plano</TableHead>
+                        <TableHead>Ficheiros</TableHead>
+                        <TableHead>API Calls</TableHead>
+                        <TableHead>Estado Pagamento</TableHead>
+                        <TableHead>Registado</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {usersData?.users?.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div>
+                              <div className="flex items-center">
+                                <span className="font-medium">{user.email}</span>
+                                {user.isAdmin && <Shield className="w-4 h-4 ml-2 text-green-600" />}
+                              </div>
+                              {user.firstName && user.lastName && (
+                                <span className="text-sm text-gray-500">
+                                  {user.firstName} {user.lastName}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {user.plan?.name || user.planId || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{user.totalFiles}</TableCell>
+                          <TableCell>{user.totalApiCalls}</TableCell>
+                          <TableCell>
+                            <PaymentStatusBadge status={user.paymentStatus} />
+                          </TableCell>
+                          <TableCell>{formatDate(user.createdAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-md">
+                                  <DialogHeader>
+                                    <DialogTitle>Editar Utilizador</DialogTitle>
+                                    <DialogDescription>
+                                      Modificar dados de {user.email}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label>Email</Label>
+                                      <Input defaultValue={user.email} disabled className="bg-gray-50" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <Label>Primeiro Nome</Label>
+                                        <Input defaultValue={user.firstName || ''} />
+                                      </div>
+                                      <div>
+                                        <Label>Último Nome</Label>
+                                        <Input defaultValue={user.lastName || ''} />
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <Label>Plano</Label>
+                                      <Select defaultValue={user.planId || 'basic'}>
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {plansData?.map((plan) => (
+                                            <SelectItem key={plan.id} value={plan.id}>
+                                              {plan.name} - €{parseFloat(plan.pricePerMonth).toFixed(2)}/mês
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`admin-${user.id}`}
+                                        defaultChecked={user.isAdmin}
+                                        className="rounded"
+                                      />
+                                      <Label htmlFor={`admin-${user.id}`} className="flex items-center">
+                                        <Shield className="w-4 h-4 mr-2 text-green-600" />
+                                        Privilégios de Administrador
+                                      </Label>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                      <Button 
+                                        className="flex-1"
+                                        onClick={() => {
+                                          const firstName = (document.querySelector(`input[defaultValue="${user.firstName || ''}"]`) as HTMLInputElement)?.value;
+                                          const lastName = (document.querySelector(`input[defaultValue="${user.lastName || ''}"]`) as HTMLInputElement)?.value;
+                                          const planSelect = document.querySelector(`select[defaultValue="${user.planId || 'basic'}"]`) as HTMLSelectElement;
+                                          const isAdminCheck = document.getElementById(`admin-${user.id}`) as HTMLInputElement;
+                                          
+                                          updateUserMutation.mutate({
+                                            userId: user.id,
+                                            userData: {
+                                              firstName,
+                                              lastName,
+                                              planId: planSelect?.value,
+                                              isAdmin: isAdminCheck?.checked
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        <Save className="w-4 h-4 mr-2" />
+                                        Guardar
+                                      </Button>
+                                      <Button 
+                                        variant="outline" 
+                                        className="flex-1"
+                                        onClick={() => {
+                                          if (confirm('Tem a certeza que quer resetar a password deste utilizador?')) {
+                                            resetPasswordMutation.mutate(user.id);
+                                          }
+                                        }}
+                                      >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Reset Password
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-700"
+                                disabled={user.isAdmin}
+                                onClick={() => {
+                                  if (confirm(`Tem a certeza que quer eliminar o utilizador ${user.email}? Esta acção não pode ser desfeita.`)) {
+                                    deleteUserMutation.mutate(user.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         );
 
       case 'plans':

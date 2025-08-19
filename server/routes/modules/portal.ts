@@ -65,9 +65,12 @@ portalRouter.get('/admin/stats', AdminController.getDashboard);
 
 // User Management
 portalRouter.get('/admin/users', AdminController.getUsers);
+portalRouter.post('/admin/users', AdminController.createUser);
 portalRouter.get('/admin/users/:userId', AdminController.getUserDetails);
 portalRouter.put('/admin/users/:userId', AdminController.updateUser);
 portalRouter.post('/admin/users/:userId/suspend', AdminController.suspendUser);
+portalRouter.post('/admin/users/:userId/reset-password', AdminController.resetUserPassword);
+portalRouter.delete('/admin/users/:userId', AdminController.deleteUser);
 
 // Payment Management
 portalRouter.get('/admin/payments', AdminController.getPayments);

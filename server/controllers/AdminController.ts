@@ -29,6 +29,15 @@ const userUpdateSchema = z.object({
   isAdmin: z.boolean().optional(),
 });
 
+const createUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  planId: z.string(),
+  isAdmin: z.boolean().default(false),
+});
+
 const paymentMethodSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['stripe', 'bank_transfer', 'paypal', 'mbway']),
@@ -136,6 +145,39 @@ export class AdminController {
     }
   }
 
+  static async createUser(req: Request, res: Response) {
+    try {
+      const adminUser = (req as any).adminUser;
+      const userData = createUserSchema.parse(req.body);
+
+      const newUser = await AdminService.createUser(userData);
+
+      if (newUser) {
+        await AdminService.logAuditAction(
+          adminUser.id,
+          'user_created',
+          'user',
+          newUser.id,
+          null,
+          userData,
+          req.ip,
+          req.get('User-Agent')
+        );
+      }
+
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error('Create user error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      if ((error as any).code === '23505') { // Unique constraint violation
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+      res.status(500).json({ message: 'Failed to create user' });
+    }
+  }
+
   static async suspendUser(req: Request, res: Response) {
     try {
       const { userId } = req.params;
@@ -146,6 +188,62 @@ export class AdminController {
     } catch (error) {
       console.error('Suspend user error:', error);
       res.status(500).json({ message: 'Failed to suspend user' });
+    }
+  }
+
+  static async resetUserPassword(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const adminUser = (req as any).adminUser;
+
+      const newPassword = await AdminService.resetUserPassword(userId);
+
+      await AdminService.logAuditAction(
+        adminUser.id,
+        'password_reset',
+        'user',
+        userId,
+        null,
+        { resetBy: adminUser.id },
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      res.json({ message: 'Password reset successfully', temporaryPassword: newPassword });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: 'Failed to reset password' });
+    }
+  }
+
+  static async deleteUser(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const adminUser = (req as any).adminUser;
+
+      // Prevent deletion of admin users
+      const userToDelete = await AdminService.getUserById(userId);
+      if (userToDelete?.isAdmin) {
+        return res.status(400).json({ message: 'Cannot delete admin users' });
+      }
+
+      await AdminService.deleteUser(userId);
+
+      await AdminService.logAuditAction(
+        adminUser.id,
+        'user_deleted',
+        'user',
+        userId,
+        userToDelete,
+        null,
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Delete user error:', error);
+      res.status(500).json({ message: 'Failed to delete user' });
     }
   }
 

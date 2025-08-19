@@ -119,6 +119,76 @@ export class AdminService {
     }
   }
 
+  static async createUser(userData: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    planId: string;
+    isAdmin?: boolean;
+  }): Promise<User | null> {
+    try {
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email: userData.email,
+          passwordHash: hashedPassword,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          planId: userData.planId,
+          isAdmin: userData.isAdmin || false,
+          storageUsed: '0',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      return newUser || null;
+    } catch (error) {
+      console.error('Create user error:', error);
+      throw error;
+    }
+  }
+
+  static async resetUserPassword(userId: string): Promise<string> {
+    try {
+      // Generate a random 12-character password
+      const newPassword = Math.random().toString(36).slice(-12);
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      
+      await db
+        .update(users)
+        .set({
+          passwordHash: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+
+      return newPassword;
+    } catch (error) {
+      console.error('Reset user password error:', error);
+      throw error;
+    }
+  }
+
+  static async deleteUser(userId: string): Promise<void> {
+    try {
+      // Delete related records first (cascade delete)
+      await db.delete(apiKeys).where(eq(apiKeys.userId, userId));
+      await db.delete(files).where(eq(files.userId, userId));
+      await db.delete(payments).where(eq(payments.userId, userId));
+      await db.delete(apiUsage).where(eq(apiUsage.userId, userId));
+      
+      // Finally delete the user
+      await db.delete(users).where(eq(users.id, userId));
+    } catch (error) {
+      console.error('Delete user error:', error);
+      throw error;
+    }
+  }
+
   static async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     try {
       const result = await db.update(users).set({ ...updates, updatedAt: new Date() }).where(eq(users.id, id)).returning();
