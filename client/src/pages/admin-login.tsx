@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -26,8 +26,11 @@ export default function AdminLogin() {
         title: "Sucesso!",
         description: data.message,
       });
-      // Redirect to admin panel
-      setLocation('/admin');
+      // Invalidate auth cache and redirect
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setTimeout(() => {
+        setLocation('/admin');
+      }, 500);
     },
     onError: (error: any) => {
       toast({
