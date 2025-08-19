@@ -11,6 +11,9 @@ import Admin from "@/pages/admin";
 import ApiDocs from "@/pages/api-docs";
 import PlanSelection from "@/pages/plan-selection";
 import Register from "@/pages/register";
+import Profile from "@/pages/profile";
+import Subscription from "@/pages/subscription";
+import Billing from "@/pages/billing";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -39,6 +42,9 @@ function Router() {
         <>
           <Route path="/" component={user?.isAdmin ? Admin : Home} />
           <Route path="/dashboard" component={Home} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/subscription" component={Subscription} />
+          <Route path="/billing" component={Billing} />
           <Route path="/admin" component={Admin} />
           <Route path="/api-docs" component={ApiDocs} />
           <Route path="/plans" component={PlanSelection} />

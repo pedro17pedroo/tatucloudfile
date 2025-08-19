@@ -40,6 +40,7 @@ export interface IStorage {
   getUserByEmailOrPhone(emailOrPhone: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByPhone(phone: string): Promise<User | undefined>;
+  updateUser(userId: string, updates: Partial<User>): Promise<User>;
   updateUserPlan(userId: string, planId: string): Promise<void>;
   
   // Plan operations
@@ -141,6 +142,15 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(eq(users.phone, phone));
     return user;
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
   }
 
   async getPlans(): Promise<Plan[]> {
@@ -412,9 +422,9 @@ export class MemoryStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const existingUser = this.users.get(userData.id);
+    const existingUser = this.users.get(userData.id || '');
     const user: User = {
-      id: userData.id,
+      id: userData.id || randomUUID(),
       email: userData.email || null,
       phone: userData.phone || null,
       passwordHash: userData.passwordHash || null,
@@ -455,6 +465,17 @@ export class MemoryStorage implements IStorage {
 
   async getUserByPhone(phone: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.phone === phone);
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+    const existingUser = this.users.get(userId);
+    if (!existingUser) {
+      throw new Error('User not found');
+    }
+    
+    const updatedUser = { ...existingUser, ...updates, updatedAt: new Date() };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 
   async getPlans(): Promise<Plan[]> {
@@ -522,7 +543,7 @@ export class MemoryStorage implements IStorage {
   }
 
   async validateApiKey(rawKey: string): Promise<ApiKey | undefined> {
-    for (const key of this.apiKeys.values()) {
+    for (const key of Array.from(this.apiKeys.values())) {
       if (key.isActive && await bcrypt.compare(rawKey, key.keyHash)) {
         return key;
       }

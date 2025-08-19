@@ -4,6 +4,9 @@ import { AdminController } from '../../controllers/AdminController';
 import { SeedController } from '../../controllers/SeedController';
 import { UserController } from '../../controllers/UserController';
 import { UserProfileController } from '../../controllers/UserProfileController';
+import { ProfileController } from '../../controllers/ProfileController';
+import { SubscriptionController } from '../../controllers/SubscriptionController';
+import { BillingController } from '../../controllers/BillingController';
 import { authenticateUser, isAdmin } from '../../middleware/auth';
 import multer from 'multer';
 
@@ -35,6 +38,21 @@ portalRouter.post('/user/change-password', UserProfileController.changePassword)
 portalRouter.post('/user/change-plan', UserProfileController.changePlan);
 portalRouter.get('/user/settings', UserProfileController.getUserSettings);
 portalRouter.put('/user/settings', UserProfileController.updateUserSettings);
+
+// New user management routes
+portalRouter.put('/profile/update', ProfileController.updateProfile);
+portalRouter.put('/profile/change-password', ProfileController.changePassword);
+
+// Subscription management routes
+portalRouter.get('/subscription/info', SubscriptionController.getSubscriptionInfo);
+portalRouter.post('/subscription/change-plan', SubscriptionController.changePlan);
+portalRouter.post('/subscription/cancel', SubscriptionController.cancelSubscription);
+portalRouter.post('/subscription/reactivate', SubscriptionController.reactivateSubscription);
+
+// Billing history routes
+portalRouter.get('/billing/history', BillingController.getBillingHistory);
+portalRouter.get('/billing/summary', BillingController.getBillingSummary);
+portalRouter.get('/billing/receipt/:paymentId', BillingController.downloadReceipt);
 
 // Plans (moved to auth routes for public access during registration)
 

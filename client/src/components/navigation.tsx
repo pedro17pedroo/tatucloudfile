@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Cloud, Home, Settings, FileText, User } from "lucide-react";
+import { Cloud, Home, Settings, FileText, User, CreditCard, Receipt } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,7 +61,7 @@ export function Navigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2" data-testid="user-menu-trigger">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profileImageUrl} alt={user?.firstName || ""} />
+                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || ""} />
                     <AvatarFallback>
                       <User className="h-4 w-4" />
                     </AvatarFallback>
@@ -72,8 +72,26 @@ export function Navigation() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <Link href="/profile">
+                  <DropdownMenuItem data-testid="profile-menu-item">
+                    <User className="mr-2 h-4 w-4" />
+                    Meu Perfil
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/subscription">
+                  <DropdownMenuItem data-testid="subscription-menu-item">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Subscrição
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/billing">
+                  <DropdownMenuItem data-testid="billing-menu-item">
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Histórico
+                  </DropdownMenuItem>
+                </Link>
                 <DropdownMenuItem onClick={() => window.location.href = '/api/logout'} data-testid="logout-menu-item">
-                  Sign Out
+                  Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
