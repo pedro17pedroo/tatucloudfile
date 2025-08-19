@@ -12,7 +12,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize default plans
   const existingPlans = await storage.getPlans();
+  console.log(`[Plans] Found ${existingPlans.length} existing plans:`, existingPlans.map(p => `${p.name}: ${p.storageLimit} bytes`));
+  
+  // Check if any plan has incorrect storage limits and fix them
+  const expectedLimits: Record<string, string> = {
+    'basic': '2147483648',   // 2GB
+    'pro': '5368709120',     // 5GB  
+    'premium': '10737418240' // 10GB
+  };
+  
+  let needsCorrection = false;
+  for (const plan of existingPlans) {
+    const expectedLimit = expectedLimits[plan.id];
+    if (expectedLimit && plan.storageLimit !== expectedLimit) {
+      console.log(`[Plans] Correcting ${plan.name} storage limit from ${plan.storageLimit} to ${expectedLimit}`);
+      await storage.updatePlan(plan.id, { storageLimit: expectedLimit });
+      needsCorrection = true;
+    }
+  }
+  
+  if (needsCorrection) {
+    console.log('[Plans] Storage limits corrected');
+  }
+  
   if (existingPlans.length === 0) {
+    console.log('[Plans] Creating default plans...');
     await storage.createPlan({
       id: 'basic',
       name: 'Basic',
@@ -34,6 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       pricePerMonth: '19.99',
       apiCallsPerHour: 5000,
     });
+    console.log('[Plans] Default plans created successfully');
   }
 
   // Mount module routes
