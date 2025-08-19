@@ -24,7 +24,17 @@ The frontend is built using React with TypeScript, utilizing modern UI patterns 
 **Styling**: Tailwind CSS for utility-first styling with custom CSS variables for theme consistency, including MEGA brand colors and design system.
 
 ## Backend Architecture
-The backend follows a RESTful API design pattern with Express.js:
+The backend follows a modular MVC architecture with Express.js:
+
+**Modular Structure**: Organized into separate modules for developers (API endpoints, documentation) and end users (portal interface). Each module has dedicated routes, controllers, and services.
+
+**Controllers Layer**: Handle HTTP requests/responses and input validation. Located in `server/controllers/` with separate controllers for Auth, Files, API Keys, and Admin functionality.
+
+**Services Layer**: Contains business logic and external integrations. Located in `server/services/` including AuthService, FileService, ApiKeyService, AdminService, and MegaService.
+
+**Routes Layer**: Modular route definitions organized by functionality. Located in `server/routes/modules/` with separate modules for auth, developer APIs, and portal endpoints.
+
+**Middleware Layer**: Authentication, authorization, and rate limiting middleware. Located in `server/middleware/` for reusable request processing.
 
 **API Design**: RESTful endpoints following standard HTTP conventions with proper status codes and error handling. Implements rate limiting based on user plans and API key authentication.
 

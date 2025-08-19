@@ -16,6 +16,7 @@ import {
   type MegaCredentials,
   type InsertMegaCredentials,
   type ApiUsage,
+  type InsertApiUsage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";

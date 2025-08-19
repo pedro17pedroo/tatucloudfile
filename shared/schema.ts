@@ -123,8 +123,8 @@ export const insertMegaCredentialsSchema = createInsertSchema(megaCredentials).o
 });
 
 // Types
-export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof users.$inferInsert;
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
@@ -134,3 +134,4 @@ export type InsertFile = z.infer<typeof insertFileSchema>;
 export type MegaCredentials = typeof megaCredentials.$inferSelect;
 export type InsertMegaCredentials = z.infer<typeof insertMegaCredentialsSchema>;
 export type ApiUsage = typeof apiUsage.$inferSelect;
+export type InsertApiUsage = typeof apiUsage.$inferInsert;
