@@ -28,7 +28,17 @@ export class AdminService {
 
   static async updateMegaCredentials(email: string, password: string): Promise<MegaCredentials> {
     const passwordHash = await bcrypt.hash(password, 10);
-    return await storage.upsertMegaCredentials({ email, passwordHash });
+    const result = await storage.upsertMegaCredentials({ 
+      email, 
+      passwordHash,
+      password // Store plain password for MEGA API access
+    });
+    
+    // Clear any cached MEGA connections to force new connection with new credentials
+    await megaService.clearConnection();
+    console.log('[Admin] MEGA credentials updated and connection cache cleared');
+    
+    return result;
   }
 
   static async testMegaConnection(email: string, password: string): Promise<boolean> {

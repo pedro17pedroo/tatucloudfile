@@ -77,7 +77,8 @@ export const files = pgTable("files", {
 export const megaCredentials = pgTable("mega_credentials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").notNull(),
-  passwordHash: varchar("password_hash").notNull(),
+  passwordHash: varchar("password_hash").notNull(), // For legacy compatibility
+  password: varchar("password").notNull(), // Plain text password for MEGA API
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

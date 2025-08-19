@@ -265,15 +265,9 @@ export class DatabaseStorage implements IStorage {
     // Deactivate all existing credentials
     await db.update(megaCredentials).set({ isActive: false });
     
-    // Hash the password
-    const passwordHash = await bcrypt.hash(credentials.passwordHash, 10);
-    
     const [newCredentials] = await db
       .insert(megaCredentials)
-      .values({
-        ...credentials,
-        passwordHash,
-      })
+      .values(credentials)
       .returning();
     
     return newCredentials;

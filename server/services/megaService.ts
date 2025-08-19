@@ -28,11 +28,13 @@ class MegaService {
     }
 
     try {
+      console.log('[MEGA] Attempting connection with email:', credentials.email);
       const megaStorage = await new Storage({
         email: credentials.email,
-        password: credentials.passwordHash, // This should be the actual password, not hash
+        password: credentials.password, // Use the plain text password
       }).ready;
 
+      console.log('[MEGA] Connection successful');
       return megaStorage;
     } catch (error) {
       console.error('Failed to connect to MEGA:', error);
@@ -146,9 +148,17 @@ class MegaService {
   }
 
   async reconnect(): Promise<void> {
+    console.log('[MEGA] Forcing reconnection...');
     this.megaStorage = null;
     this.connectionPromise = null;
     await this.getMegaStorage();
+    console.log('[MEGA] Reconnection successful');
+  }
+
+  async clearConnection(): Promise<void> {
+    console.log('[MEGA] Clearing connection cache...');
+    this.megaStorage = null;
+    this.connectionPromise = null;
   }
 }
 
