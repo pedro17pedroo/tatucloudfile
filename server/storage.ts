@@ -154,7 +154,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlans(): Promise<Plan[]> {
-    return db.select().from(plans).orderBy(plans.storageLimit);
+    const allPlans = await db.select().from(plans);
+    // Sort by storage limit numerically
+    return allPlans.sort((a: Plan, b: Plan) => parseInt(a.storageLimit) - parseInt(b.storageLimit));
   }
 
   async updateUserPlan(userId: string, planId: string): Promise<void> {

@@ -31,7 +31,8 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
 
   // Get user's plan to determine file size limits
   const userPlan = plans.find((p) => p.id === user?.planId);
-  const maxFileSize = userPlan ? Math.min(parseInt(userPlan.storageLimit), 1024 * 1024 * 1024) : 1024 * 1024 * 1024; // Max 1GB or plan limit
+  const planStorageLimit = userPlan ? parseInt(userPlan.storageLimit) : 2147483648; // Default to 2GB for Basic
+  const maxFileSize = Math.min(planStorageLimit, 1024 * 1024 * 1024); // Max single file is 1GB but show plan limit
   
   const formatBytes = (bytes: number) => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -162,7 +163,14 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
             </Button>{' '}
             from your computer
           </p>
-          <p className="text-sm text-gray-400">Maximum file size: {formatBytes(maxFileSize)}</p>
+          <p className="text-sm text-gray-400">
+            Maximum file size: {formatBytes(maxFileSize)}
+            {userPlan && (
+              <span className="block text-xs mt-1">
+                Plan storage: {formatBytes(planStorageLimit)}
+              </span>
+            )}
+          </p>
         </CardContent>
       </Card>
 
