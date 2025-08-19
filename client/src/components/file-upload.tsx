@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Upload, File, X } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useAuth } from "@/hooks/useAuth";
+import type { Plan } from "@shared/schema";
 
 interface FileUploadProps {
   onUploadComplete: () => void;
@@ -20,7 +22,29 @@ interface UploadingFile {
 
 export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+
+  const { data: plans = [] } = useQuery<Plan[]>({
+    queryKey: ["/api/portal/plans"],
+  });
+
+  // Get user's plan to determine file size limits
+  const userPlan = plans.find((p) => p.id === user?.planId);
+  const maxFileSize = userPlan ? Math.min(parseInt(userPlan.storageLimit), 1024 * 1024 * 1024) : 1024 * 1024 * 1024; // Max 1GB or plan limit
+  
+  const formatBytes = (bytes: number) => {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`;
+  };
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -106,7 +130,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    maxSize: 1024 * 1024 * 1024, // 1GB
+    maxSize: maxFileSize,
   });
 
   const removeFile = (file: File) => {
@@ -138,7 +162,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
             </Button>{' '}
             from your computer
           </p>
-          <p className="text-sm text-gray-400">Maximum file size: 1GB</p>
+          <p className="text-sm text-gray-400">Maximum file size: {formatBytes(maxFileSize)}</p>
         </CardContent>
       </Card>
 

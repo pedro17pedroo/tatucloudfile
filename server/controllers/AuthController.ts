@@ -106,6 +106,7 @@ export class AuthController {
           email: user.email,
           phone: user.phone,
           planId: user.planId,
+          storageUsed: user.storageUsed || '0',
           isAdmin: user.isAdmin
         }
       });
