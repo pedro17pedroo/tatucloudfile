@@ -130,7 +130,10 @@ export default function AdminPanel() {
 
   const { data: usersData, isLoading: usersLoading } = useQuery<{ users: User[], total: number }>({
     queryKey: ['/api/portal/admin/users', searchQuery],
-    queryFn: () => apiRequest(`/api/portal/admin/users?search=${encodeURIComponent(searchQuery)}`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/portal/admin/users?search=${encodeURIComponent(searchQuery)}`, 'GET');
+      return await response.json();
+    },
     enabled: activeTab === 'users',
   });
 
@@ -452,7 +455,7 @@ export default function AdminPanel() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usersData?.users.map((user) => (
+                    {usersData?.users?.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div>
@@ -726,13 +729,13 @@ export default function AdminPanel() {
                 </Button>
               </div>
 
-              {megaCredentialsData?.credentials && (
+              {(megaCredentialsData as any)?.credentials && (
                 <div className="bg-green-50 border border-green-200 rounded-md p-4">
                   <div className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
                     <div>
                       <p className="font-medium text-green-800">Credenciais Configuradas</p>
-                      <p className="text-sm text-green-600">Email: {megaCredentialsData.credentials.email}</p>
+                      <p className="text-sm text-green-600">Email: {(megaCredentialsData as any)?.credentials?.email}</p>
                     </div>
                   </div>
                 </div>
