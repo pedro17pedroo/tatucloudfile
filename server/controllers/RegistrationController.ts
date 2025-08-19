@@ -105,4 +105,38 @@ export class RegistrationController {
       res.status(500).json({ message: 'Registration failed' });
     }
   }
+
+  // Check if user exists by email or phone
+  static async checkUserExists(req: Request, res: Response) {
+    try {
+      const { contact } = req.body;
+      
+      if (!contact) {
+        return res.status(400).json({ message: 'Contact (email or phone) is required' });
+      }
+
+      // Check if it's email or phone
+      const isEmail = contact.includes('@');
+      let existingUser = null;
+
+      if (isEmail) {
+        existingUser = await storage.getUserByEmail(contact);
+      } else {
+        existingUser = await storage.getUserByPhone(contact);
+      }
+
+      if (existingUser) {
+        return res.status(409).json({ 
+          message: 'Utilizador já existe',
+          exists: true,
+          contactType: isEmail ? 'email' : 'phone'
+        });
+      }
+
+      res.json({ exists: false, message: 'Contact available' });
+    } catch (error) {
+      console.error('Check user exists error:', error);
+      res.status(500).json({ message: 'Error checking user existence' });
+    }
+  }
 }

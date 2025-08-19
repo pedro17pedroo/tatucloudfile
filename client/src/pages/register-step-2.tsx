@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ArrowRight, Mail, Phone, User, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail, Phone, User, Lock, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface RegisterStep2Props {
   formData: {
@@ -33,6 +36,40 @@ export default function RegisterStep2({
   selectedPlan
 }: RegisterStep2Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isCheckingUser, setIsCheckingUser] = useState(false);
+  const { toast } = useToast();
+
+  // Mutation to check if user exists
+  const checkUserMutation = useMutation({
+    mutationFn: async (contact: string) => {
+      return apiRequest("/api/auth/check-user-exists", "POST", { contact });
+    },
+    onSuccess: (data: any) => {
+      if (data.exists) {
+        const fieldName = contactMethod === 'email' ? 'email' : 'phone';
+        setErrors(prev => ({
+          ...prev,
+          [fieldName]: `Já existe uma conta com este ${contactMethod === 'email' ? 'email' : 'telefone'}`
+        }));
+        toast({
+          title: "Utilizador já existe",
+          description: `Já existe uma conta com este ${contactMethod === 'email' ? 'email' : 'telefone'}. Tente fazer login ou use outro contacto.`,
+          variant: "destructive",
+        });
+      } else {
+        // Clear error if user doesn't exist
+        const fieldName = contactMethod === 'email' ? 'email' : 'phone';
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[fieldName];
+          return newErrors;
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Error checking user existence:', error);
+    }
+  });
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -71,6 +108,22 @@ export default function RegisterStep2({
   const handleNext = () => {
     if (validateForm()) {
       onNext();
+    }
+  };
+
+  const handleContactBlur = async (contact: string) => {
+    if (!contact) return;
+    
+    // Basic validation first
+    if (contactMethod === 'email' && !/\S+@\S+\.\S+/.test(contact)) return;
+    if (contactMethod === 'phone' && !/^\+\d{10,}$/.test(contact)) return;
+    
+    // Check if user exists
+    setIsCheckingUser(true);
+    try {
+      await checkUserMutation.mutateAsync(contact);
+    } finally {
+      setIsCheckingUser(false);
     }
   };
 
@@ -168,9 +221,16 @@ export default function RegisterStep2({
                     placeholder="joao@exemplo.com"
                     value={formData.email}
                     onChange={(e) => onFormChange({ email: e.target.value })}
-                    className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                    onBlur={(e) => handleContactBlur(e.target.value)}
+                    className={`pl-10 ${errors.email ? 'border-red-500' : ''} ${isCheckingUser ? 'opacity-50' : ''}`}
                     data-testid="email-input"
+                    disabled={isCheckingUser}
                   />
+                  {isCheckingUser && contactMethod === 'email' && (
+                    <div className="absolute right-3 top-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-mega-red"></div>
+                    </div>
+                  )}
                 </div>
                 {errors.email && (
                   <p className="text-red-500 text-sm">{errors.email}</p>
@@ -187,9 +247,16 @@ export default function RegisterStep2({
                     placeholder="+351912345678"
                     value={formData.phone}
                     onChange={(e) => onFormChange({ phone: e.target.value })}
-                    className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
+                    onBlur={(e) => handleContactBlur(e.target.value)}
+                    className={`pl-10 ${errors.phone ? 'border-red-500' : ''} ${isCheckingUser ? 'opacity-50' : ''}`}
                     data-testid="phone-input"
+                    disabled={isCheckingUser}
                   />
+                  {isCheckingUser && contactMethod === 'phone' && (
+                    <div className="absolute right-3 top-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-mega-red"></div>
+                    </div>
+                  )}
                 </div>
                 {errors.phone && (
                   <p className="text-red-500 text-sm">{errors.phone}</p>
