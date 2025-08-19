@@ -28,7 +28,7 @@ export default function Home() {
   }, [isAuthenticated, isLoading, toast]);
 
   const { data: files, isLoading: filesLoading, refetch: refetchFiles } = useQuery({
-    queryKey: ["/api/files"],
+    queryKey: ["/api/portal/files"],
     enabled: isAuthenticated,
   });
 
@@ -56,7 +56,7 @@ export default function Home() {
           <FileUpload onUploadComplete={refetchFiles} />
         </div>
         
-        <FileGrid files={files || []} onFileDeleted={refetchFiles} isLoading={filesLoading} />
+        <FileGrid files={Array.isArray(files) ? files : []} onFileDeleted={refetchFiles} isLoading={filesLoading} />
       </div>
     </div>
   );

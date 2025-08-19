@@ -12,19 +12,18 @@ import ApiDocs from "@/pages/api-docs";
 import PlanSelection from "@/pages/plan-selection";
 
 function Router() {
-  const { isAuthenticated, isLoading, needsPlanSelection } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
-      ) : needsPlanSelection ? (
-        <Route path="/" component={PlanSelection} />
       ) : (
         <>
-          <Route path="/" component={Home} />
+          <Route path="/" component={user?.isAdmin ? Admin : Home} />
           <Route path="/admin" component={Admin} />
           <Route path="/api-docs" component={ApiDocs} />
+          <Route path="/plans" component={PlanSelection} />
         </>
       )}
       <Route component={NotFound} />

@@ -27,7 +27,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/files/upload', {
+      const response = await fetch('/api/portal/files/upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',

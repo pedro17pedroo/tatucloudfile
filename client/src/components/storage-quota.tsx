@@ -9,7 +9,7 @@ export function StorageQuota() {
   const { user } = useAuth();
 
   const { data: plans = [] } = useQuery<Plan[]>({
-    queryKey: ["/api/plans"],
+    queryKey: ["/api/portal/plans"],
   });
 
   if (!user || !plans) {

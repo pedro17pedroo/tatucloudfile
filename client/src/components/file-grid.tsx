@@ -44,12 +44,12 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
 
   const { data: apiKeys } = useQuery({
-    queryKey: ["/api/api-keys"],
+    queryKey: ["/api/portal/api-keys"],
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      return apiRequest("DELETE", `/api/files/${fileId}`);
+      return apiRequest(`/api/portal/files/${fileId}`, "DELETE");
     },
     onSuccess: () => {
       toast({
@@ -81,10 +81,10 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
 
   const createApiKeyMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/api-keys", { name: "Default API Key" });
+      return apiRequest("/api/portal/api-keys", "POST", { name: "Default API Key" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/api-keys"] });
       toast({
         title: "API Key created",
         description: "Your API key has been generated",
@@ -167,7 +167,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                 />
               </div>
               
-              {(!apiKeys || apiKeys.length === 0) && (
+              {(!Array.isArray(apiKeys) || apiKeys.length === 0) && (
                 <Button
                   onClick={() => createApiKeyMutation.mutate()}
                   disabled={createApiKeyMutation.isPending}

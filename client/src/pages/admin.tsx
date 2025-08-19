@@ -61,7 +61,7 @@ export default function Admin() {
 
   const updateMegaCredentialsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/admin/mega-credentials", {
+      return apiRequest("/api/portal/admin/mega-credentials", "POST", {
         email: megaEmail,
         password: megaPassword,
       });
@@ -95,13 +95,13 @@ export default function Admin() {
 
   // Fetch plans
   const { data: plans = [], refetch: refetchPlans } = useQuery<Plan[]>({
-    queryKey: ["/api/plans"],
+    queryKey: ["/api/portal/plans"],
   });
 
   // Plan mutations
   const createPlanMutation = useMutation({
     mutationFn: async (data: InsertPlan) => {
-      return apiRequest("/api/admin/plans", "POST", data);
+      return apiRequest("/api/portal/admin/plans", "POST", data);
     },
     onSuccess: () => {
       toast({
@@ -111,7 +111,7 @@ export default function Admin() {
       setIsCreatePlanOpen(false);
       resetPlanForm();
       refetchPlans();
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/plans"] });
     },
     onError: (error) => {
       toast({
@@ -134,7 +134,7 @@ export default function Admin() {
       setEditingPlan(null);
       resetPlanForm();
       refetchPlans();
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/plans"] });
     },
     onError: (error) => {
       toast({
@@ -155,7 +155,7 @@ export default function Admin() {
         description: "O plano foi removido do sistema.",
       });
       refetchPlans();
-      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/plans"] });
     },
     onError: (error) => {
       toast({
