@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { FileController } from '../../controllers/FileController';
 import { AdminController } from '../../controllers/AdminController';
+import { SeedController } from '../../controllers/SeedController';
 import { authenticateUser, isAdmin } from '../../middleware/auth';
 import multer from 'multer';
 
@@ -30,5 +31,7 @@ portalRouter.get('/admin/mega-credentials', AdminController.getMegaCredentials);
 portalRouter.post('/admin/mega-credentials', AdminController.updateMegaCredentials);
 portalRouter.get('/admin/stats', AdminController.getSystemStats);
 portalRouter.post('/admin/plans', AdminController.createPlan);
+portalRouter.post('/admin/seed', SeedController.seedDatabase);
+portalRouter.post('/admin/create-test-api-key', SeedController.createTestApiKey);
 
 export { portalRouter };
