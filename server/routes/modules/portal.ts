@@ -3,6 +3,7 @@ import { FileController } from '../../controllers/FileController';
 import { AdminController } from '../../controllers/AdminController';
 import { SeedController } from '../../controllers/SeedController';
 import { UserController } from '../../controllers/UserController';
+import { UserProfileController } from '../../controllers/UserProfileController';
 import { authenticateUser, isAdmin } from '../../middleware/auth';
 import multer from 'multer';
 
@@ -26,6 +27,14 @@ portalRouter.get('/files/search', FileController.searchFiles);
 // User profile and plans
 portalRouter.get('/user/profile', UserController.getProfile);
 portalRouter.post('/user/select-plan', UserController.selectPlan);
+
+// User profile management
+portalRouter.get('/user/subscriptions', UserProfileController.getUserSubscriptions);
+portalRouter.get('/user/payments', UserProfileController.getUserPayments);
+portalRouter.post('/user/change-password', UserProfileController.changePassword);
+portalRouter.post('/user/change-plan', UserProfileController.changePlan);
+portalRouter.get('/user/settings', UserProfileController.getUserSettings);
+portalRouter.put('/user/settings', UserProfileController.updateUserSettings);
 
 // Plans (moved to auth routes for public access during registration)
 

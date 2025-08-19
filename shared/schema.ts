@@ -94,6 +94,44 @@ export const apiUsage = pgTable("api_usage", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// User subscription history
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  planId: varchar("plan_id").references(() => plans.id).notNull(),
+  status: varchar("status").default('active'), // active, cancelled, expired
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Payment history
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  subscriptionId: varchar("subscription_id").references(() => userSubscriptions.id),
+  planId: varchar("plan_id").references(() => plans.id).notNull(),
+  amount: numeric("amount").notNull(),
+  currency: varchar("currency").default('EUR'),
+  status: varchar("status").default('pending'), // pending, completed, failed, refunded
+  paymentMethod: varchar("payment_method"), // card, paypal, bank_transfer
+  transactionId: varchar("transaction_id"),
+  receiptUrl: varchar("receipt_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+});
+
+// User settings
+export const userSettings = pgTable("user_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  notifications: boolean("notifications").default(true),
+  theme: varchar("theme").default('light'), // light, dark
+  language: varchar("language").default('pt'), // pt, en
+  timezone: varchar("timezone").default('Europe/Lisbon'),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -122,6 +160,21 @@ export const insertMegaCredentialsSchema = createInsertSchema(megaCredentials).o
   updatedAt: true,
 });
 
+export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -135,3 +188,9 @@ export type MegaCredentials = typeof megaCredentials.$inferSelect;
 export type InsertMegaCredentials = z.infer<typeof insertMegaCredentialsSchema>;
 export type ApiUsage = typeof apiUsage.$inferSelect;
 export type InsertApiUsage = typeof apiUsage.$inferInsert;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;

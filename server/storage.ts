@@ -5,6 +5,9 @@ import {
   files,
   megaCredentials,
   apiUsage,
+  userSubscriptions,
+  payments,
+  userSettings,
   type User,
   type UpsertUser,
   type Plan,
@@ -17,6 +20,12 @@ import {
   type InsertMegaCredentials,
   type ApiUsage,
   type InsertApiUsage,
+  type UserSubscription,
+  type InsertUserSubscription,
+  type Payment,
+  type InsertPayment,
+  type UserSettings,
+  type InsertUserSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -60,6 +69,21 @@ export interface IStorage {
   // Usage tracking
   logApiUsage(usage: Omit<ApiUsage, 'id' | 'timestamp'>): Promise<void>;
   getApiUsageStats(userId: string): Promise<{ total: number; lastHour: number }>;
+  
+  // User subscriptions
+  createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
+  getUserSubscriptions(userId: string): Promise<UserSubscription[]>;
+  
+  // Payments
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getUserPayments(userId: string): Promise<Payment[]>;
+  
+  // User settings
+  getUserSettings(userId: string): Promise<UserSettings | undefined>;
+  updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings>;
+  
+  // User profile
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -267,6 +291,54 @@ export class DatabaseStorage implements IStorage {
       total: totalResult?.count || 0,
       lastHour: lastHourResult?.count || 0,
     };
+  }
+
+  async createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription> {
+    const [result] = await db
+      .insert(userSubscriptions)
+      .values(subscription)
+      .returning();
+    return result;
+  }
+
+  async getUserSubscriptions(userId: string): Promise<UserSubscription[]> {
+    return db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId)).orderBy(desc(userSubscriptions.createdAt));
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [result] = await db
+      .insert(payments)
+      .values(payment)
+      .returning();
+    return result;
+  }
+
+  async getUserPayments(userId: string): Promise<Payment[]> {
+    return db.select().from(payments).where(eq(payments.userId, userId)).orderBy(desc(payments.createdAt));
+  }
+
+  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    return settings;
+  }
+
+  async updateUserSettings(userId: string, settingsData: Partial<InsertUserSettings>): Promise<UserSettings> {
+    const [result] = await db
+      .insert(userSettings)
+      .values({ userId, ...settingsData, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: { ...settingsData, updatedAt: new Date() }
+      })
+      .returning();
+    return result;
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 }
 
