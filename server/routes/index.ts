@@ -35,6 +35,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Plans] Storage limits corrected');
   }
   
+  // Initialize default admin user
+  const adminEmail = 'admin@megafilemanager.com';
+  let existingAdmin = await storage.getUserByEmail(adminEmail);
+  
+  if (!existingAdmin) {
+    console.log('[Admin] Creating default admin user...');
+    const bcrypt = await import('bcrypt');
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    
+    existingAdmin = await storage.createUser({
+      email: adminEmail,
+      firstName: 'Admin',
+      lastName: 'User',
+      passwordHash,
+      planId: 'premium',
+      isAdmin: true
+    });
+    console.log('[Admin] Default admin user created: admin@megafilemanager.com / admin123');
+  } else {
+    console.log('[Admin] Admin user already exists');
+  }
+
+  // For development: Make the test user an admin so they can configure MEGA credentials
+  const testUserEmail = 'pedro17pedroo@gmail.com';
+  const testUser = await storage.getUserByEmail(testUserEmail);
+  if (testUser && !testUser.isAdmin) {
+    console.log('[Admin] Making test user admin for MEGA configuration...');
+    await storage.updateUser(testUser.id, { isAdmin: true });
+    console.log('[Admin] Test user is now admin');
+  }
+  
   if (existingPlans.length === 0) {
     console.log('[Plans] Creating default plans...');
     await storage.createPlan({
