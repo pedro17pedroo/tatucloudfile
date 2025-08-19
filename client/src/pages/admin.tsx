@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, CheckCircle, XCircle, Users, CreditCard, Key, Database, Settings, Activity, Eye, FileText, Trash2, Shield, RefreshCw, Download } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Users, CreditCard, Key, Database, Settings, Activity, Eye, FileText, Trash2, Shield, RefreshCw, Download, Package, Wallet, Plus, Edit, Save } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface SystemStats {
@@ -97,6 +97,28 @@ interface AuditLog {
   createdAt: string;
 }
 
+interface Plan {
+  id: string;
+  name: string;
+  storageLimit: string;
+  pricePerMonth: string;
+  apiCallsPerHour: number;
+  createdAt: string;
+}
+
+interface PaymentMethod {
+  id: string;
+  name: string;
+  type: 'stripe' | 'bank_transfer' | 'paypal' | 'mbway';
+  isActive: boolean;
+  configuration: {
+    processingTime?: string;
+    fees?: string;
+    description?: string;
+  };
+  createdAt: string;
+}
+
 function formatBytes(bytes: string | number) {
   const num = typeof bytes === 'string' ? parseInt(bytes) : bytes;
   if (num === 0) return '0 Bytes';
@@ -121,6 +143,15 @@ export default function AdminPanel() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [megaCredentials, setMegaCredentials] = useState({ email: '', password: '' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [planForm, setPlanForm] = useState({ name: '', storageLimit: '', pricePerMonth: '', apiCallsPerHour: '' });
+  const [paymentMethodForm, setPaymentMethodForm] = useState({ 
+    name: '', 
+    type: 'stripe' as 'stripe' | 'bank_transfer' | 'paypal' | 'mbway',
+    isActive: true,
+    configuration: { processingTime: '', fees: '', description: '' }
+  });
   
   // Queries
   const { data: stats, isLoading: statsLoading } = useQuery<SystemStats>({
@@ -160,6 +191,24 @@ export default function AdminPanel() {
   const { data: megaCredentialsData } = useQuery({
     queryKey: ['/api/portal/admin/mega-credentials'],
     enabled: activeTab === 'mega',
+  });
+
+  const { data: plansData, isLoading: plansLoading } = useQuery<{ plans: Plan[], total: number }>({
+    queryKey: ['/api/portal/admin/plans'],
+    queryFn: async () => {
+      const response = await apiRequest('/api/portal/admin/plans', 'GET');
+      return await response.json();
+    },
+    enabled: activeTab === 'plans',
+  });
+
+  const { data: paymentMethodsData, isLoading: paymentMethodsLoading } = useQuery<{ paymentMethods: PaymentMethod[], total: number }>({
+    queryKey: ['/api/portal/admin/payment-methods'],
+    queryFn: async () => {
+      const response = await apiRequest('/api/portal/admin/payment-methods', 'GET');
+      return await response.json();
+    },
+    enabled: activeTab === 'payment-methods',
   });
 
   // Mutations
@@ -223,6 +272,87 @@ export default function AdminPanel() {
     }
   });
 
+  // Plan mutations
+  const createPlan = useMutation({
+    mutationFn: (data: { name: string; storageLimit: string; pricePerMonth: string; apiCallsPerHour: number }) =>
+      apiRequest('/api/portal/admin/plans', 'POST', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/plans'] });
+      toast({ title: 'Plano criado com sucesso' });
+      setPlanForm({ name: '', storageLimit: '', pricePerMonth: '', apiCallsPerHour: '' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao criar plano', variant: 'destructive' });
+    }
+  });
+
+  const updatePlan = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Plan> }) =>
+      apiRequest(`/api/portal/admin/plans/${id}`, 'PUT', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/plans'] });
+      toast({ title: 'Plano atualizado com sucesso' });
+      setSelectedPlan(null);
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar plano', variant: 'destructive' });
+    }
+  });
+
+  const deletePlan = useMutation({
+    mutationFn: (id: string) => apiRequest(`/api/portal/admin/plans/${id}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/plans'] });
+      toast({ title: 'Plano eliminado com sucesso' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao eliminar plano', variant: 'destructive' });
+    }
+  });
+
+  // Payment Method mutations
+  const createPaymentMethod = useMutation({
+    mutationFn: (data: { name: string; type: string; isActive: boolean; configuration: any }) =>
+      apiRequest('/api/portal/admin/payment-methods', 'POST', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/payment-methods'] });
+      toast({ title: 'Método de pagamento criado com sucesso' });
+      setPaymentMethodForm({ 
+        name: '', 
+        type: 'stripe',
+        isActive: true,
+        configuration: { processingTime: '', fees: '', description: '' }
+      });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao criar método de pagamento', variant: 'destructive' });
+    }
+  });
+
+  const updatePaymentMethod = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<PaymentMethod> }) =>
+      apiRequest(`/api/portal/admin/payment-methods/${id}`, 'PUT', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/payment-methods'] });
+      toast({ title: 'Método de pagamento atualizado com sucesso' });
+      setSelectedPaymentMethod(null);
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar método de pagamento', variant: 'destructive' });
+    }
+  });
+
+  const deletePaymentMethod = useMutation({
+    mutationFn: (id: string) => apiRequest(`/api/portal/admin/payment-methods/${id}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/payment-methods'] });
+      toast({ title: 'Método de pagamento eliminado com sucesso' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao eliminar método de pagamento', variant: 'destructive' });
+    }
+  });
+
   // Dashboard Statistics Cards
   const StatsCard = ({ title, value, icon: Icon, color, description }: {
     title: string;
@@ -268,7 +398,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="dashboard" data-testid="tab-dashboard">
             <Activity className="w-4 h-4 mr-2" />
             Dashboard
@@ -281,6 +411,14 @@ export default function AdminPanel() {
             <CreditCard className="w-4 h-4 mr-2" />
             Pagamentos
           </TabsTrigger>
+          <TabsTrigger value="plans" data-testid="tab-plans">
+            <Package className="w-4 h-4 mr-2" />
+            Planos
+          </TabsTrigger>
+          <TabsTrigger value="payment-methods" data-testid="tab-payment-methods">
+            <Settings className="w-4 h-4 mr-2" />
+            Métodos
+          </TabsTrigger>
           <TabsTrigger value="api" data-testid="tab-api">
             <Key className="w-4 h-4 mr-2" />
             API
@@ -289,7 +427,35 @@ export default function AdminPanel() {
             <Database className="w-4 h-4 mr-2" />
             MEGA
           </TabsTrigger>
-          <TabsTrigger value="audit" data-testid="tab-audit">
+          <TabsTrigger value="logs" data-testid="tab-logs">
+            <FileText className="w-4 h-4 mr-2" />
+            Auditoria
+          </TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users">
+            <Users className="w-4 h-4 mr-2" />
+            Utilizadores
+          </TabsTrigger>
+          <TabsTrigger value="payments" data-testid="tab-payments">
+            <CreditCard className="w-4 h-4 mr-2" />
+            Pagamentos
+          </TabsTrigger>
+          <TabsTrigger value="plans" data-testid="tab-plans">
+            <Package className="w-4 h-4 mr-2" />
+            Planos
+          </TabsTrigger>
+          <TabsTrigger value="payment-methods" data-testid="tab-payment-methods">
+            <Wallet className="w-4 h-4 mr-2" />
+            Métodos
+          </TabsTrigger>
+          <TabsTrigger value="api" data-testid="tab-api">
+            <Key className="w-4 h-4 mr-2" />
+            API
+          </TabsTrigger>
+          <TabsTrigger value="mega" data-testid="tab-mega">
+            <Database className="w-4 h-4 mr-2" />
+            MEGA
+          </TabsTrigger>
+          <TabsTrigger value="logs" data-testid="tab-logs">
             <FileText className="w-4 h-4 mr-2" />
             Auditoria
           </TabsTrigger>
@@ -582,6 +748,337 @@ export default function AdminPanel() {
                               Revisar
                             </Button>
                           )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Plans Management Tab */}
+        <TabsContent value="plans" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Gestão de Planos
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" data-testid="button-create-plan">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Criar Plano
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent data-testid="dialog-create-plan">
+                    <DialogHeader>
+                      <DialogTitle>Criar Novo Plano</DialogTitle>
+                      <DialogDescription>
+                        Configure os detalhes do novo plano de subscrição
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="plan-name">Nome do Plano</Label>
+                        <Input
+                          id="plan-name"
+                          value={planForm.name}
+                          onChange={(e) => setPlanForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Ex: Premium Plus"
+                          data-testid="input-plan-name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="plan-storage">Limite de Armazenamento (GB)</Label>
+                        <Input
+                          id="plan-storage"
+                          value={planForm.storageLimit}
+                          onChange={(e) => setPlanForm(prev => ({ ...prev, storageLimit: e.target.value }))}
+                          placeholder="Ex: 50"
+                          type="number"
+                          data-testid="input-plan-storage"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="plan-price">Preço Mensal (€)</Label>
+                        <Input
+                          id="plan-price"
+                          value={planForm.pricePerMonth}
+                          onChange={(e) => setPlanForm(prev => ({ ...prev, pricePerMonth: e.target.value }))}
+                          placeholder="Ex: 29.99"
+                          type="number"
+                          step="0.01"
+                          data-testid="input-plan-price"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="plan-api-calls">Chamadas API por Hora</Label>
+                        <Input
+                          id="plan-api-calls"
+                          value={planForm.apiCallsPerHour}
+                          onChange={(e) => setPlanForm(prev => ({ ...prev, apiCallsPerHour: e.target.value }))}
+                          placeholder="Ex: 1000"
+                          type="number"
+                          data-testid="input-plan-api-calls"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => createPlan.mutate({
+                          name: planForm.name,
+                          storageLimit: (parseInt(planForm.storageLimit) * 1024 * 1024 * 1024).toString(),
+                          pricePerMonth: planForm.pricePerMonth,
+                          apiCallsPerHour: parseInt(planForm.apiCallsPerHour)
+                        })}
+                        disabled={createPlan.isPending || !planForm.name || !planForm.storageLimit || !planForm.pricePerMonth || !planForm.apiCallsPerHour}
+                        data-testid="button-save-plan"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {createPlan.isPending ? 'A criar...' : 'Criar Plano'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardTitle>
+              <CardDescription>
+                Configure e gerir planos de subscrição disponíveis
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {plansLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Armazenamento</TableHead>
+                      <TableHead>Preço Mensal</TableHead>
+                      <TableHead>API Calls/Hora</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {plansData?.plans?.map((plan) => (
+                      <TableRow key={plan.id}>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium">
+                            {plan.name}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatBytes(plan.storageLimit)}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(plan.pricePerMonth)}
+                        </TableCell>
+                        <TableCell>
+                          {plan.apiCallsPerHour.toLocaleString('pt-PT')}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(plan.createdAt).toLocaleDateString('pt-PT')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedPlan(plan)}
+                              data-testid={`button-edit-plan-${plan.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deletePlan.mutate(plan.id)}
+                              disabled={deletePlan.isPending}
+                              data-testid={`button-delete-plan-${plan.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Payment Methods Management Tab */}
+        <TabsContent value="payment-methods" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Métodos de Pagamento
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" data-testid="button-create-payment-method">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Método
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent data-testid="dialog-create-payment-method">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Método de Pagamento</DialogTitle>
+                      <DialogDescription>
+                        Configure um novo método de pagamento disponível
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="payment-method-name">Nome do Método</Label>
+                        <Input
+                          id="payment-method-name"
+                          value={paymentMethodForm.name}
+                          onChange={(e) => setPaymentMethodForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Ex: Cartão de Crédito Visa"
+                          data-testid="input-payment-method-name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="payment-method-type">Tipo</Label>
+                        <Select 
+                          value={paymentMethodForm.type} 
+                          onValueChange={(value: 'stripe' | 'bank_transfer' | 'paypal' | 'mbway') => 
+                            setPaymentMethodForm(prev => ({ ...prev, type: value }))
+                          }
+                        >
+                          <SelectTrigger data-testid="select-payment-method-type">
+                            <SelectValue placeholder="Selecionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="stripe">Stripe (Cartões)</SelectItem>
+                            <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                            <SelectItem value="mbway">MB WAY</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="payment-method-processing-time">Tempo de Processamento</Label>
+                        <Input
+                          id="payment-method-processing-time"
+                          value={paymentMethodForm.configuration.processingTime}
+                          onChange={(e) => setPaymentMethodForm(prev => ({ 
+                            ...prev, 
+                            configuration: { ...prev.configuration, processingTime: e.target.value }
+                          }))}
+                          placeholder="Ex: Instantâneo, 1-3 dias úteis"
+                          data-testid="input-payment-processing-time"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="payment-method-fees">Taxas</Label>
+                        <Input
+                          id="payment-method-fees"
+                          value={paymentMethodForm.configuration.fees}
+                          onChange={(e) => setPaymentMethodForm(prev => ({ 
+                            ...prev, 
+                            configuration: { ...prev.configuration, fees: e.target.value }
+                          }))}
+                          placeholder="Ex: 2.9% + 0.30€"
+                          data-testid="input-payment-fees"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="payment-method-description">Descrição</Label>
+                        <Textarea
+                          id="payment-method-description"
+                          value={paymentMethodForm.configuration.description}
+                          onChange={(e) => setPaymentMethodForm(prev => ({ 
+                            ...prev, 
+                            configuration: { ...prev.configuration, description: e.target.value }
+                          }))}
+                          placeholder="Descrição do método de pagamento..."
+                          data-testid="textarea-payment-description"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => createPaymentMethod.mutate(paymentMethodForm)}
+                        disabled={createPaymentMethod.isPending || !paymentMethodForm.name || !paymentMethodForm.type}
+                        data-testid="button-save-payment-method"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {createPaymentMethod.isPending ? 'A adicionar...' : 'Adicionar Método'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardTitle>
+              <CardDescription>
+                Configure métodos de pagamento disponíveis para os utilizadores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentMethodsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Tempo Processamento</TableHead>
+                      <TableHead>Taxas</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentMethodsData?.paymentMethods?.map((method) => (
+                      <TableRow key={method.id}>
+                        <TableCell className="font-medium">
+                          {method.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {method.type.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {method.configuration.processingTime || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {method.configuration.fees || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={method.isActive ? 'default' : 'secondary'}>
+                            {method.isActive ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedPaymentMethod(method)}
+                              data-testid={`button-edit-payment-method-${method.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deletePaymentMethod.mutate(method.id)}
+                              disabled={deletePaymentMethod.isPending}
+                              data-testid={`button-delete-payment-method-${method.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -1,11 +1,11 @@
 import { db } from '../db';
 import { 
   users, plans, megaCredentials, payments, apiUsage, auditLogs, systemSettings, 
-  megaAccountStatus, apiKeys, files, userSubscriptions,
+  megaAccountStatus, apiKeys, files, userSubscriptions, paymentMethods,
   User, Plan, MegaCredentials, Payment, ApiUsage, AuditLog, SystemSetting, 
-  MegaAccountStatus, ApiKey, File, UserSubscription,
+  MegaAccountStatus, ApiKey, File, UserSubscription, PaymentMethod,
   InsertPlan, InsertPayment, InsertAuditLog, InsertSystemSetting,
-  InsertMegaAccountStatus
+  InsertMegaAccountStatus, InsertPaymentMethod
 } from '@shared/schema';
 import { eq, desc, sql, count, sum, gte, lte, and, or, like, isNull } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
@@ -494,6 +494,62 @@ export class AdminService {
       });
     } catch (error) {
       console.error('Error logging audit action:', error);
+    }
+  }
+
+  // Payment Method Management
+  static async getPaymentMethods(): Promise<PaymentMethod[]> {
+    try {
+      const result = await db.select().from(paymentMethods).orderBy(desc(paymentMethods.createdAt));
+      return result;
+    } catch (error) {
+      console.error('Error getting payment methods:', error);
+      throw error;
+    }
+  }
+
+  static async createPaymentMethod(data: Omit<InsertPaymentMethod, 'id' | 'createdAt'>): Promise<PaymentMethod> {
+    try {
+      const result = await db.insert(paymentMethods).values({
+        name: data.name,
+        type: data.type,
+        isActive: data.isActive ?? true,
+        configuration: data.configuration || {}
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating payment method:', error);
+      throw error;
+    }
+  }
+
+  static async updatePaymentMethod(id: string, updates: Partial<Omit<InsertPaymentMethod, 'id' | 'createdAt'>>): Promise<PaymentMethod> {
+    try {
+      const result = await db.update(paymentMethods)
+        .set(updates)
+        .where(eq(paymentMethods.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        throw new Error('Payment method not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      throw error;
+    }
+  }
+
+  static async deletePaymentMethod(id: string): Promise<void> {
+    try {
+      const result = await db.delete(paymentMethods).where(eq(paymentMethods.id, id));
+      if (result.rowCount === 0) {
+        throw new Error('Payment method not found');
+      }
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      throw error;
     }
   }
 

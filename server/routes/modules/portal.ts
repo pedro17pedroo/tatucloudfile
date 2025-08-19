@@ -93,6 +93,12 @@ portalRouter.post('/admin/plans', AdminController.createPlan);
 portalRouter.put('/admin/plans/:planId', AdminController.updatePlan);
 portalRouter.delete('/admin/plans/:planId', AdminController.deletePlan);
 
+// Payment Method Management
+portalRouter.get('/admin/payment-methods', AdminController.getPaymentMethods);
+portalRouter.post('/admin/payment-methods', AdminController.createPaymentMethod);
+portalRouter.put('/admin/payment-methods/:methodId', AdminController.updatePaymentMethod);
+portalRouter.delete('/admin/payment-methods/:methodId', AdminController.deletePaymentMethod);
+
 // Reports & Analytics
 portalRouter.get('/admin/reports/:type', AdminController.generateReport);
 
