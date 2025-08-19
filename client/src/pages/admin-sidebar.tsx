@@ -465,6 +465,352 @@ export function AdminPanelWithSidebar() {
           </Card>
         );
 
+      case 'plans':
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-medium">Gestão de Planos</h3>
+                <p className="text-sm text-gray-500">Gerir planos de subscrição disponíveis</p>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Plano
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Plano</DialogTitle>
+                    <DialogDescription>
+                      Adicionar um novo plano de subscrição ao sistema
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="plan-name">Nome do Plano</Label>
+                      <Input
+                        id="plan-name"
+                        value={planForm.name}
+                        onChange={(e) => setPlanForm({...planForm, name: e.target.value})}
+                        placeholder="ex: Enterprise"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="storage-limit">Limite de Armazenamento (bytes)</Label>
+                      <Input
+                        id="storage-limit"
+                        value={planForm.storageLimit}
+                        onChange={(e) => setPlanForm({...planForm, storageLimit: e.target.value})}
+                        placeholder="ex: 21474836480 (20GB)"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price-month">Preço por Mês (€)</Label>
+                      <Input
+                        id="price-month"
+                        value={planForm.pricePerMonth}
+                        onChange={(e) => setPlanForm({...planForm, pricePerMonth: e.target.value})}
+                        placeholder="ex: 29.99"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="api-calls">Chamadas API por Hora</Label>
+                      <Input
+                        id="api-calls"
+                        value={planForm.apiCallsPerHour}
+                        onChange={(e) => setPlanForm({...planForm, apiCallsPerHour: e.target.value})}
+                        placeholder="ex: 10000"
+                      />
+                    </div>
+                    <Button className="w-full">
+                      <Save className="w-4 h-4 mr-2" />
+                      Criar Plano
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {plansLoading ? (
+                  <div className="text-center py-8">A carregar planos...</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Armazenamento</TableHead>
+                        <TableHead>Preço/Mês</TableHead>
+                        <TableHead>API Calls/Hora</TableHead>
+                        <TableHead>Criado</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {plansData?.plans?.map((plan) => (
+                        <TableRow key={plan.id}>
+                          <TableCell>
+                            <div>
+                              <span className="font-medium">{plan.name}</span>
+                              <div className="text-sm text-gray-500">ID: {plan.id}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">{formatBytes(plan.storageLimit)}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">€{parseFloat(plan.pricePerMonth).toFixed(2)}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span>{plan.apiCallsPerHour.toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDate(plan.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => setSelectedPlan(plan)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Editar Plano</DialogTitle>
+                                    <DialogDescription>
+                                      Modificar detalhes do plano {plan.name}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label>Nome do Plano</Label>
+                                      <Input defaultValue={plan.name} />
+                                    </div>
+                                    <div>
+                                      <Label>Limite de Armazenamento</Label>
+                                      <Input defaultValue={plan.storageLimit} />
+                                    </div>
+                                    <div>
+                                      <Label>Preço por Mês</Label>
+                                      <Input defaultValue={plan.pricePerMonth} />
+                                    </div>
+                                    <div>
+                                      <Label>Chamadas API por Hora</Label>
+                                      <Input defaultValue={plan.apiCallsPerHour} />
+                                    </div>
+                                    <Button className="w-full">
+                                      <Save className="w-4 h-4 mr-2" />
+                                      Guardar Alterações
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )) || []}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'payments':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Gestão de Pagamentos</CardTitle>
+              <CardDescription>
+                Aprovar ou rejeitar pagamentos pendentes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentsLoading ? (
+                <div className="text-center py-8">A carregar pagamentos...</div>
+              ) : paymentsData?.payments?.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum pagamento registado
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Utilizador</TableHead>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentsData?.payments?.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>
+                          <div>
+                            <span className="font-medium">{payment.user?.email}</span>
+                            {payment.user?.firstName && payment.user?.lastName && (
+                              <div className="text-sm text-gray-500">
+                                {payment.user.firstName} {payment.user.lastName}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{payment.plan?.name}</Badge>
+                        </TableCell>
+                        <TableCell>€{parseFloat(payment.amount).toFixed(2)}</TableCell>
+                        <TableCell>{payment.paymentMethod}</TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge status={payment.status} />
+                        </TableCell>
+                        <TableCell>{formatDate(payment.createdAt)}</TableCell>
+                        <TableCell>
+                          {payment.status === 'pending' && (
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm" className="text-green-600">
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Aprovar
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-red-600">
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Rejeitar
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )) || []}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'api':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Gestão de Chaves API</CardTitle>
+              <CardDescription>
+                Monitorizar e gerir chaves API dos utilizadores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {apiKeysLoading ? (
+                <div className="text-center py-8">A carregar chaves API...</div>
+              ) : apiKeysData?.apiKeys?.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhuma chave API registada
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Utilizador</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Último Uso</TableHead>
+                      <TableHead>Criada</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {apiKeysData?.apiKeys?.map((apiKey) => (
+                      <TableRow key={apiKey.id}>
+                        <TableCell>
+                          <span className="font-medium">{apiKey.name}</span>
+                        </TableCell>
+                        <TableCell>{apiKey.user?.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={apiKey.isActive ? "default" : "secondary"}>
+                            {apiKey.isActive ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Nunca'}
+                        </TableCell>
+                        <TableCell>{formatDate(apiKey.createdAt)}</TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" className="text-red-600">
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Revogar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )) || []}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'mega':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuração MEGA</CardTitle>
+                <CardDescription>
+                  Configurar credenciais da conta MEGA para armazenamento
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="mega-email">Email MEGA</Label>
+                  <Input
+                    id="mega-email"
+                    type="email"
+                    value={megaCredentials.email}
+                    onChange={(e) => setMegaCredentials({...megaCredentials, email: e.target.value})}
+                    placeholder="seu-email@exemplo.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="mega-password">Password MEGA</Label>
+                  <Input
+                    id="mega-password"
+                    type="password"
+                    value={megaCredentials.password}
+                    onChange={(e) => setMegaCredentials({...megaCredentials, password: e.target.value})}
+                    placeholder="Sua password MEGA"
+                  />
+                </div>
+                <div className="flex space-x-2">
+                  <Button>
+                    <Save className="w-4 h-4 mr-2" />
+                    Guardar Credenciais
+                  </Button>
+                  <Button variant="outline">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Testar Ligação
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-12">
