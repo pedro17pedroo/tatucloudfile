@@ -215,11 +215,13 @@ export function AdminPanelWithSidebar() {
     enabled: activeTab === 'mega',
   });
 
-  const { data: plansData, isLoading: plansLoading } = useQuery<{ plans: Plan[], total: number }>({
+  const { data: plansData, isLoading: plansLoading } = useQuery<Plan[]>({
     queryKey: ['/api/portal/admin/plans'],
     queryFn: async () => {
       const response = await apiRequest('/api/portal/admin/plans', 'GET');
-      return await response.json();
+      const data = await response.json();
+      // Handle both array format and object with plans property
+      return Array.isArray(data) ? data : data.plans || [];
     },
     enabled: activeTab === 'plans',
   });
@@ -550,7 +552,7 @@ export function AdminPanelWithSidebar() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {plansData?.plans?.map((plan) => (
+                      {plansData?.map((plan) => (
                         <TableRow key={plan.id}>
                           <TableCell>
                             <div>
