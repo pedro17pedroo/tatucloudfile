@@ -7,6 +7,8 @@ import RegisterStep1 from "./register-step-1";
 import RegisterStep2 from "./register-step-2";
 import RegisterStep3 from "./register-step-3";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Home } from "lucide-react";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -68,6 +70,10 @@ export default function Register() {
     registerMutation.mutate();
   };
 
+  const handleLoginRedirect = () => {
+    navigate("/dashboard");
+  };
+
   // Loading state during registration
   if (registerMutation.isPending) {
     return (
@@ -126,6 +132,7 @@ export default function Register() {
     );
   }
 
+  // No longer need step 4 - redirect happens automatically
   // Default fallback (should not happen)
   return null;
 }
