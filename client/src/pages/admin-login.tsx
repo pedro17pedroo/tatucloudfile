@@ -18,11 +18,8 @@ export default function AdminLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
-      const response = await apiRequest('/api/auth/admin-login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      return response;
+      const response = await apiRequest('/api/auth/admin-login', 'POST', data);
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
@@ -30,7 +27,7 @@ export default function AdminLogin() {
         description: data.message,
       });
       // Redirect to admin panel
-      window.location.href = '/admin';
+      setLocation('/admin');
     },
     onError: (error: any) => {
       toast({

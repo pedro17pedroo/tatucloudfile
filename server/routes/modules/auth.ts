@@ -33,6 +33,10 @@ authRouter.post('/admin-login', async (req: any, res: any) => {
     }
 
     // Find user by email
+    const { db } = await import('../../db');
+    const { users } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
     const userResult = await db.select().from(users).where(eq(users.email, email));
     const user = userResult[0];
     
@@ -42,7 +46,7 @@ authRouter.post('/admin-login', async (req: any, res: any) => {
 
     // Check password
     const bcrypt = await import('bcrypt');
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash || '');
     
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
