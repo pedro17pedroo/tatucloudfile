@@ -79,15 +79,22 @@ export class AuthController {
 
   static async getUser(req: Request, res: Response) {
     try {
-      const userId = (req.session as any)?.userId || (req as any).user?.claims?.sub;
+      // Check for userId in session (custom registration) or Replit OAuth
+      const sessionUserId = (req.session as any)?.userId;
+      const oauthUserId = (req as any).user?.claims?.sub;
+      const userId = sessionUserId || oauthUserId;
+      
+      console.log(`[Auth] Session userId: ${sessionUserId}, OAuth userId: ${oauthUserId}, Final userId: ${userId}`);
       
       if (!userId) {
+        console.log('[Auth] No userId found in session or OAuth');
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
       const user = await AuthService.getUserById(userId);
       
       if (!user) {
+        console.log(`User not found for ID: ${userId}`);
         return res.status(404).json({ message: 'User not found' });
       }
 

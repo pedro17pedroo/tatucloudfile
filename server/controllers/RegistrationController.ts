@@ -70,6 +70,20 @@ export class RegistrationController {
 
       // Create session
       (req.session as any).userId = user.id;
+      console.log(`[Registration] Session created for user: ${user.id}`);
+      
+      // Force session save before responding
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('[Registration] Session save error:', err);
+            reject(err);
+          } else {
+            console.log('[Registration] Session saved successfully');
+            resolve();
+          }
+        });
+      });
 
       res.status(201).json({
         message: 'Registration successful',
