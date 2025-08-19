@@ -40,6 +40,15 @@ export async function authenticateUser(req: any, res: Response, next: NextFuncti
       return res.status(401).json({ message: 'User not found' });
     }
 
+    // Check if non-admin users have a plan
+    if (!user.isAdmin && !user.planId) {
+      return res.status(403).json({ 
+        message: 'Plan required', 
+        redirectTo: '/plans',
+        error: 'NO_PLAN'
+      });
+    }
+
     req.user = { claims: { sub: user.id } };
     req.currentUser = user;
     next();

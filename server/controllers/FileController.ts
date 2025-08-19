@@ -3,7 +3,7 @@ import { FileService } from '../services/FileService';
 import { z } from 'zod';
 
 const uploadSchema = z.object({
-  fileName: z.string().min(1),
+  fileName: z.string().min(1).optional(),
   filePath: z.string().optional(),
 });
 

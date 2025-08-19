@@ -10,6 +10,7 @@ import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import ApiDocs from "@/pages/api-docs";
 import PlanSelection from "@/pages/plan-selection";
+import Register from "@/pages/register";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -24,6 +25,7 @@ function Router() {
           <Route path="/admin" component={Admin} />
           <Route path="/api-docs" component={ApiDocs} />
           <Route path="/plans" component={PlanSelection} />
+        <Route path="/register" component={Register} />
         </>
       )}
       <Route component={NotFound} />

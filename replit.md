@@ -8,6 +8,17 @@ The system features a modern web interface for file management, API key generati
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## User Registration with Mandatory Plans (August 19, 2025)
+- **CRITICAL RULE**: All users (except admins) must have a plan assigned - no users without plans allowed
+- Created separate registration endpoint `/api/auth/register` that requires plan selection during signup
+- Added validation middleware to prevent users without plans from accessing protected endpoints  
+- Updated all frontend endpoints to use proper `/api/portal/` routes instead of `/api/`
+- Fixed authentication flow: admins go to admin dashboard, users to user dashboard (not plan selection)
+- Plan selection page only appears when explicitly requested via `/plans` route
+- Test users now have plans assigned: user@test.com has 'pro' plan
+
 # System Architecture
 
 ## Frontend Architecture
