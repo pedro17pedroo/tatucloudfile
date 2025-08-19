@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
+import AdminLogin from "@/pages/admin-login";
 import ApiDocs from "@/pages/api-docs";
 import PlanSelection from "@/pages/plan-selection";
 import Register from "@/pages/register";
@@ -37,6 +38,7 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route path="/register" component={Register} />
           <Route path="/plans" component={PlanSelection} />
+          <Route path="/admin-login" component={AdminLogin} />
         </>
       ) : (
         <>
@@ -46,6 +48,7 @@ function Router() {
           <Route path="/subscription" component={Subscription} />
           <Route path="/billing" component={Billing} />
           <Route path="/admin" component={Admin} />
+          <Route path="/admin-login" component={AdminLogin} />
           <Route path="/api-docs" component={ApiDocs} />
           <Route path="/plans" component={PlanSelection} />
         </>
