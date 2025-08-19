@@ -26,7 +26,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
 
   const { data: plans = [] } = useQuery<Plan[]>({
-    queryKey: ["/api/portal/plans"],
+    queryKey: ["/api/auth/plans"],
   });
 
   // Get user's plan to determine file size limits

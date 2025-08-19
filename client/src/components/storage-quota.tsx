@@ -8,11 +8,11 @@ import type { Plan } from "@shared/schema";
 export function StorageQuota() {
   const { user } = useAuth();
 
-  const { data: plans = [] } = useQuery<Plan[]>({
-    queryKey: ["/api/portal/plans"],
+  const { data: plans = [], isLoading: plansLoading } = useQuery<Plan[]>({
+    queryKey: ["/api/auth/plans"],
   });
 
-  if (!user || !plans) {
+  if (!user || plansLoading || plans.length === 0) {
     return (
       <Card data-testid="storage-quota-loading">
         <CardContent className="p-6">
@@ -53,9 +53,11 @@ export function StorageQuota() {
             <h3 className="text-lg font-semibold text-mega-text" data-testid="storage-title">Storage Usage</h3>
           </div>
           <div className="text-right">
-            <div className="text-sm text-gray-500">Plan: {currentPlan?.name}</div>
+            <div className="text-sm text-gray-500">
+              Plan: {currentPlan?.name || user.planId || 'Unknown'}
+            </div>
             <div className="text-lg font-semibold text-mega-text" data-testid="storage-usage">
-              {formatBytes(storageUsed)} / {formatBytes(storageLimit)}
+              {formatBytes(storageUsed)} / {storageLimit > 0 ? formatBytes(storageLimit) : '0 B'}
             </div>
           </div>
         </div>
