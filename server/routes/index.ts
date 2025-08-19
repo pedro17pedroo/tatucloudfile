@@ -35,7 +35,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Plans] Storage limits corrected');
   }
   
-  // Initialize default admin user
+  if (existingPlans.length === 0) {
+    console.log('[Plans] Creating default plans...');
+    await storage.createPlan({
+      id: 'basic',
+      name: 'Basic',
+      storageLimit: '2147483648', // 2GB
+      pricePerMonth: '0',
+      apiCallsPerHour: 100,
+    });
+    await storage.createPlan({
+      id: 'pro',
+      name: 'Pro',
+      storageLimit: '5368709120', // 5GB
+      pricePerMonth: '9.99',
+      apiCallsPerHour: 1000,
+    });
+    await storage.createPlan({
+      id: 'premium',
+      name: 'Premium',
+      storageLimit: '10737418240', // 10GB
+      pricePerMonth: '19.99',
+      apiCallsPerHour: 5000,
+    });
+    console.log('[Plans] Default plans created successfully');
+  }
+
+  // Initialize default admin user AFTER plans are created
   const adminEmail = 'admin@megafilemanager.com';
   let existingAdmin = await storage.getUserByEmail(adminEmail);
   
@@ -64,32 +90,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Admin] Making test user admin for MEGA configuration...');
     await storage.updateUser(testUser.id, { isAdmin: true });
     console.log('[Admin] Test user is now admin');
-  }
-  
-  if (existingPlans.length === 0) {
-    console.log('[Plans] Creating default plans...');
-    await storage.createPlan({
-      id: 'basic',
-      name: 'Basic',
-      storageLimit: '2147483648', // 2GB
-      pricePerMonth: '0',
-      apiCallsPerHour: 100,
-    });
-    await storage.createPlan({
-      id: 'pro',
-      name: 'Pro',
-      storageLimit: '5368709120', // 5GB
-      pricePerMonth: '9.99',
-      apiCallsPerHour: 1000,
-    });
-    await storage.createPlan({
-      id: 'premium',
-      name: 'Premium',
-      storageLimit: '10737418240', // 10GB
-      pricePerMonth: '19.99',
-      apiCallsPerHour: 5000,
-    });
-    console.log('[Plans] Default plans created successfully');
   }
 
   // Mount module routes
