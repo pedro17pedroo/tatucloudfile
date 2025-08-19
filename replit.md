@@ -10,6 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## Project Migration to Replit Environment (August 19, 2025)
+- Migrated from Replit Agent environment to standard Replit environment
+- Updated database configuration from Neon serverless to standard PostgreSQL
+- Installed required dependencies and verified application startup
+- Application successfully running on port 5000 with full functionality
+
 ## 3-Step Registration with OTP Verification (August 19, 2025)
 - **CRITICAL RULE**: All users (except admins) must have a plan assigned - no users without plans allowed
 - Removed modal registration from landing page and created dedicated 3-step registration flow:
@@ -60,7 +66,7 @@ The backend follows a modular MVC architecture with Express.js:
 **Database Layer**: Drizzle ORM with PostgreSQL for type-safe database operations. Schema includes users, files, API keys, plans, and MEGA credentials with proper relationships and constraints.
 
 ## Data Storage Solutions
-**Primary Database**: PostgreSQL via Neon serverless database for user data, file metadata, API keys, and system configuration.
+**Primary Database**: PostgreSQL database for user data, file metadata, API keys, and system configuration.
 
 **File Storage**: MEGA cloud storage as the primary file storage backend, accessed through the official MEGA SDK.
 
@@ -80,7 +86,7 @@ The backend follows a modular MVC architecture with Express.js:
 # External Dependencies
 
 ## Core Infrastructure
-- **Neon Database**: PostgreSQL serverless database for application data storage
+- **PostgreSQL**: Database for application data storage
 - **Replit OAuth**: Authentication provider for user login and profile management
 - **Vite**: Frontend build tool and development server
 
