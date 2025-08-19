@@ -69,8 +69,8 @@ export default function Register() {
   };
 
   const handleLoginRedirect = () => {
-    // Force a complete page reload to ensure proper authentication state
-    window.location.reload();
+    // Redirect to dashboard after successful registration
+    window.location.href = "/dashboard";
   };
 
   // Loading state during registration
@@ -165,7 +165,7 @@ export default function Register() {
                 data-testid="go-to-dashboard-button"
               >
                 <Home className="h-4 w-4 mr-2" />
-                Recarregar Página
+                Ir para o Dashboard
               </Button>
             </div>
           </CardContent>
