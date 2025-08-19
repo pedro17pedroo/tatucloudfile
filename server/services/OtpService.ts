@@ -1,4 +1,5 @@
 import { storage } from '../storage';
+import { emailService } from './EmailService';
 
 interface OtpData {
   code: string;
@@ -31,13 +32,17 @@ export class OtpService {
     // Store OTP (use contact as key)
     otpStorage.set(contact, otpData);
 
-    // In production, integrate with real email/SMS services
+    // Send OTP via email or SMS
     if (contactType === 'email') {
       console.log(`📧 Sending OTP to email ${contact}: ${code}`);
-      // TODO: Integrate with SendGrid or similar
+      const emailSent = await emailService.sendOtpEmail(contact, code);
+      if (!emailSent) {
+        throw new Error('Failed to send OTP email');
+      }
     } else {
       console.log(`📱 Sending OTP to phone ${contact}: ${code}`);
-      // TODO: Integrate with Twilio or similar
+      // TODO: Integrate with Twilio or similar SMS service
+      // For now, just log it
     }
 
     return code; // In production, don't return the code

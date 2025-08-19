@@ -157,22 +157,13 @@ export default function Landing() {
               Connect your applications seamlessly with MEGA cloud storage using our RESTful
               API. Upload, download, and manage files with enterprise-grade security.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Button
                 onClick={() => navigate("/register")}
                 className="bg-mega-red hover:bg-red-600 text-white px-8 py-3 text-lg"
                 data-testid="hero-register-button"
               >
                 Começar Gratuitamente
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setIsAuthOpen(true)}
-                className="border-mega-red text-mega-red hover:bg-mega-red/5 px-8 py-3 text-lg"
-                data-testid="hero-login-button"
-              >
-                <User className="mr-2 h-5 w-5" />
-                Entrar
               </Button>
             </div>
           </div>

@@ -10,14 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## User Registration with Mandatory Plans (August 19, 2025)
+## 3-Step Registration with OTP Verification (August 19, 2025)
 - **CRITICAL RULE**: All users (except admins) must have a plan assigned - no users without plans allowed
-- Created separate registration endpoint `/api/auth/register` that requires plan selection during signup
-- Added validation middleware to prevent users without plans from accessing protected endpoints  
-- Updated all frontend endpoints to use proper `/api/portal/` routes instead of `/api/`
-- Fixed authentication flow: admins go to admin dashboard, users to user dashboard (not plan selection)
-- Plan selection page only appears when explicitly requested via `/plans` route
-- Test users now have plans assigned: user@test.com has 'pro' plan
+- Removed modal registration from landing page and created dedicated 3-step registration flow:
+  - Step 1: Plan selection with improved UI and feature comparisons
+  - Step 2: Personal details with separate email/phone contact methods
+  - Step 3: OTP verification via email (real SMTP integration) or phone (simulated)
+- Implemented Gmail SMTP integration for real OTP email delivery
+- Navigation improved: "Entrar" button first, then "Criar conta" button
+- Removed redundant "Já tem conta? Entrar" button from hero section
+- Plans route moved to `/api/auth/plans` for public access during registration
+- OTP system with 5-minute expiration and professional email templates
+- Test users with plans: admin@megafilemanager.com/admin123 (Premium), user@test.com/user123 (Pro), +351912345678/phone123 (Basic)
 
 # System Architecture
 
