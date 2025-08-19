@@ -6,6 +6,8 @@ import { megaService } from "./services/megaService";
 import multer from "multer";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import bcrypt from "bcrypt";
+import session from "express-session";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -50,6 +52,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Custom authentication routes
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { firstName, lastName, emailOrPhone, password } = req.body;
+
+      if (!firstName || !lastName || !emailOrPhone || !password) {
+        return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+      }
+
+      // Check if it's email or phone
+      const isEmail = emailOrPhone.includes('@');
+      const isPhone = /^\+?[\d\s\-\(\)]+$/.test(emailOrPhone);
+
+      if (!isEmail && !isPhone) {
+        return res.status(400).json({ message: 'Formato de email ou telefone inválido' });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create user
+      const userData = {
+        firstName,
+        lastName,
+        email: isEmail ? emailOrPhone : null,
+        phone: isPhone ? emailOrPhone : null,
+        passwordHash,
+        planId: 'basic'
+      };
+
+      const user = await storage.createUser(userData);
+      res.status(201).json({ 
+        message: 'Conta criada com sucesso',
+        user: { id: user.id, firstName: user.firstName, lastName: user.lastName }
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      if ((error as any).message?.includes('duplicate key')) {
+        return res.status(400).json({ message: 'Email ou telefone já está em uso' });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { emailOrPhone, password } = req.body;
+
+      if (!emailOrPhone || !password) {
+        return res.status(400).json({ message: 'Email/telefone e password são obrigatórios' });
+      }
+
+      // Find user by email or phone
+      const user = await storage.getUserByEmailOrPhone(emailOrPhone);
+      
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
+      }
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
+      }
+
+      // Set session
+      (req.session as any).userId = user.id;
+      
+      res.json({ 
+        message: 'Login realizado com sucesso',
+        user: { 
+          id: user.id, 
+          firstName: user.firstName, 
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          planId: user.planId
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: 'Logout realizado com sucesso' });
+    });
+  });
+
+  // Middleware for custom auth
+  const customAuth = async (req: any, res: any, next: any) => {
+    if ((req.session as any)?.userId) {
+      const user = await storage.getUser((req.session as any).userId);
+      if (user) {
+        req.user = { claims: { sub: user.id } };
+        return next();
+      }
+    }
+    return res.status(401).json({ message: 'Unauthorized' });
+  };
+
   // Initialize default plans
   const existingPlans = await storage.getPlans();
   if (existingPlans.length === 0) {
@@ -76,20 +182,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Auth routes (updated to support both Replit and custom auth)
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      let userId;
+      
+      // Check custom auth first
+      if ((req.session as any)?.userId) {
+        userId = (req.session as any).userId;
+      } 
+      // Then check Replit auth
+      else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(401).json({ message: "Unauthorized" });
       }
+      
       res.json(user);
     } catch (error) {
-      console.error('Error fetching user:', error);
-      res.status(500).json({ message: 'Failed to fetch user' });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
+
+
 
   // Plans
   app.get('/api/plans', async (req, res) => {

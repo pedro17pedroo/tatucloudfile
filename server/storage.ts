@@ -77,6 +77,26 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async createUser(userData: any): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+
+  async getUserByEmailOrPhone(emailOrPhone: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        emailOrPhone.includes('@') 
+          ? eq(users.email, emailOrPhone)
+          : eq(users.phone, emailOrPhone)
+      );
+    return user;
+  }
+
   async getPlans(): Promise<Plan[]> {
     return db.select().from(plans).orderBy(plans.storageLimit);
   }
