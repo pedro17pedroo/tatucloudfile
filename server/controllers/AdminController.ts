@@ -85,7 +85,7 @@ export class AdminController {
   static async getPlans(req: Request, res: Response) {
     try {
       const plans = await AdminService.getPlans();
-      res.json({ plans });
+      res.json(plans);
     } catch (error) {
       console.error('Get plans error:', error);
       res.status(500).json({ message: 'Failed to get plans' });

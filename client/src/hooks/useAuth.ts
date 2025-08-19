@@ -11,6 +11,6 @@ export function useAuth() {
     user,
     isLoading,
     isAuthenticated: !!user,
-    needsPlanSelection: !!user && !user.planId,
+    needsPlanSelection: !!user && !user.planId && !user.isAdmin,
   };
 }

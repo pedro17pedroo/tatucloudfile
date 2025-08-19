@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { FileController } from '../../controllers/FileController';
 import { AdminController } from '../../controllers/AdminController';
 import { SeedController } from '../../controllers/SeedController';
+import { UserController } from '../../controllers/UserController';
 import { authenticateUser, isAdmin } from '../../middleware/auth';
 import multer from 'multer';
 
@@ -21,6 +22,10 @@ portalRouter.get('/files', FileController.getUserFiles);
 portalRouter.get('/files/:id/download', FileController.downloadFile);
 portalRouter.delete('/files/:id', FileController.deleteFile);
 portalRouter.get('/files/search', FileController.searchFiles);
+
+// User profile and plans
+portalRouter.get('/user/profile', UserController.getProfile);
+portalRouter.post('/user/select-plan', UserController.selectPlan);
 
 // Plans
 portalRouter.get('/plans', AdminController.getPlans);

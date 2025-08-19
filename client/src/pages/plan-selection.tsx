@@ -26,12 +26,12 @@ export default function PlanSelectionPage() {
   const { toast } = useToast();
 
   const { data: plans = [], isLoading } = useQuery<Plan[]>({
-    queryKey: ["/api/plans"],
+    queryKey: ["/api/portal/plans"],
   });
 
   const selectPlanMutation = useMutation({
     mutationFn: async (planId: string) => {
-      await apiRequest("/api/user/select-plan", "POST", { planId });
+      await apiRequest("/api/portal/user/select-plan", "POST", { planId });
     },
     onSuccess: () => {
       toast({

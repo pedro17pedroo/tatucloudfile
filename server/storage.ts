@@ -27,6 +27,9 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  createUser(userData: any): Promise<User>;
+  getUserByEmailOrPhone(emailOrPhone: string): Promise<User | undefined>;
+  updateUserPlan(userId: string, planId: string): Promise<void>;
   
   // Plan operations
   getPlans(): Promise<Plan[]>;
@@ -100,6 +103,13 @@ export class DatabaseStorage implements IStorage {
 
   async getPlans(): Promise<Plan[]> {
     return db.select().from(plans).orderBy(plans.storageLimit);
+  }
+
+  async updateUserPlan(userId: string, planId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ planId })
+      .where(eq(users.id, userId));
   }
 
   async createPlan(plan: InsertPlan): Promise<Plan> {
