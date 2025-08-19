@@ -37,17 +37,35 @@ export default function Register() {
 
       return apiRequest("/api/auth/register", "POST", registrationData);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Conta criada com sucesso!",
         description: "Bem-vindo ao MEGA File Manager",
       });
       // Move to success step (step 4) instead of immediate redirect
       setCurrentStep(4);
-      // Invalidate queries after a short delay to prevent issues during registration
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      }, 500);
+      
+      // Invalidate and refetch user data immediately to update auth state
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Prefetch the user data to ensure it's ready for when they navigate
+      setTimeout(async () => {
+        try {
+          await queryClient.prefetchQuery({ 
+            queryKey: ["/api/auth/user"],
+            queryFn: async () => {
+              const res = await fetch("/api/auth/user", { credentials: "include" });
+              if (res.ok) {
+                const data = await res.json();
+                return data.user;
+              }
+              return null;
+            }
+          });
+        } catch (error) {
+          console.log("Prefetch warning (not critical):", error);
+        }
+      }, 100);
     },
     onError: (error: any) => {
       toast({
@@ -68,9 +86,21 @@ export default function Register() {
     registerMutation.mutate();
   };
 
-  const handleLoginRedirect = () => {
-    // Redirect to dashboard after successful registration
-    window.location.href = "/dashboard";
+  const handleLoginRedirect = async () => {
+    try {
+      // First, ensure the user auth state is updated
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        // Use wouter navigation instead of window.location for better SPA handling
+        navigate("/dashboard");
+      }, 100);
+    } catch (error) {
+      console.error("Error during redirect:", error);
+      // Fallback to window.location if navigation fails
+      window.location.href = "/dashboard";
+    }
   };
 
   // Loading state during registration

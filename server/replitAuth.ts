@@ -6,6 +6,7 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import { storage } from "./storage";
 
 if (!process.env.REPLIT_DOMAINS) {
@@ -24,13 +25,27 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  
+  let sessionStore: any;
+  
+  if (process.env.DATABASE_URL) {
+    // Use PostgreSQL session store when database is available
+    const pgStore = connectPg(session);
+    sessionStore = new pgStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: false,
+      ttl: sessionTtl,
+      tableName: "sessions",
+    });
+  } else {
+    // Use memory store for development
+    console.log('[Session] Using memory store for development');
+    const MemoryStoreSession = MemoryStore(session);
+    sessionStore = new MemoryStoreSession({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    });
+  }
+  
   return session({
     secret: process.env.SESSION_SECRET || 'mega-file-manager-default-secret-key-' + Math.random().toString(36),
     store: sessionStore,
