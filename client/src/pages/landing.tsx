@@ -123,7 +123,7 @@ export default function Landing() {
                     <Button 
                       onClick={handleLogin}
                       disabled={loginMutation.isPending}
-                      className="w-full bg-[#D9272E] hover:bg-[#B91C1C] text-white"
+                      className="w-full bg-mega-green hover:bg-green-600 text-white"
                       data-testid="login-submit-button"
                     >
                       {loginMutation.isPending ? "A entrar..." : "Entrar"}
@@ -135,7 +135,7 @@ export default function Landing() {
               <Button
                 variant="outline"
                 onClick={() => navigate("/register")}
-                className="text-mega-red border-mega-red hover:bg-mega-red/5"
+                className="text-mega-green border-mega-green hover:bg-mega-green/5"
                 data-testid="register-nav-button"
               >
                 Criar conta
@@ -151,7 +151,7 @@ export default function Landing() {
           <div className="text-center">
             <h1 className="text-5xl font-bold text-mega-text mb-6 leading-tight">
               Secure Cloud Storage
-              <span className="text-mega-red block">File API</span>
+              <span className="text-mega-green block">File API</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Connect your applications seamlessly with MEGA cloud storage using our RESTful
@@ -160,7 +160,7 @@ export default function Landing() {
             <div className="flex justify-center">
               <Button
                 onClick={() => navigate("/register")}
-                className="bg-mega-red hover:bg-red-600 text-white px-8 py-3 text-lg"
+                className="bg-mega-green hover:bg-green-600 text-white px-8 py-3 text-lg"
                 data-testid="hero-register-button"
               >
                 Começar Gratuitamente
@@ -183,33 +183,33 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Upload className="h-8 w-8 text-mega-red" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Upload className="h-8 w-8 text-mega-green" />
               </div>
               <h3 className="text-xl font-semibold text-mega-text mb-2">File Upload</h3>
               <p className="text-gray-600">Upload files of any size with resumable uploads and progress tracking</p>
             </div>
 
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Download className="h-8 w-8 text-mega-red" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download className="h-8 w-8 text-mega-green" />
               </div>
               <h3 className="text-xl font-semibold text-mega-text mb-2">File Download</h3>
               <p className="text-gray-600">Secure file downloads with temporary links and access controls</p>
             </div>
 
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="h-8 w-8 text-mega-red" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-mega-green" />
               </div>
               <h3 className="text-xl font-semibold text-mega-text mb-2">File Search</h3>
               <p className="text-gray-600">Advanced search capabilities across your entire file library</p>
             </div>
 
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-red/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-red/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-mega-red" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
+              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-mega-green" />
               </div>
               <h3 className="text-xl font-semibold text-mega-text mb-2">Enterprise Security</h3>
               <p className="text-gray-600">End-to-end encryption with enterprise-grade security</p>
@@ -219,17 +219,17 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-mega-red">
+      <section className="py-20 bg-mega-green">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white mb-6">
             Ready to get started?
           </h2>
-          <p className="text-xl text-red-100 mb-8">
+          <p className="text-xl text-green-100 mb-8">
             Join thousands of developers already building with our MEGA File Manager API
           </p>
           <Button
             onClick={() => navigate("/register")}
-            className="bg-white text-mega-red hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
+            className="bg-white text-mega-green hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
             data-testid="cta-register-button"
           >
             Create Free Account

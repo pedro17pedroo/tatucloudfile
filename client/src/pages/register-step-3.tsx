@@ -159,7 +159,7 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
 
             {timeLeft > 0 ? (
               <p className="text-center text-sm text-gray-600">
-                O código expira em <span className="font-medium text-mega-red">{formatTime(timeLeft)}</span>
+                O código expira em <span className="font-medium text-mega-green">{formatTime(timeLeft)}</span>
               </p>
             ) : (
               <div className="text-center">
@@ -169,7 +169,7 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
                   size="sm"
                   onClick={handleResend}
                   disabled={sendOtpMutation.isPending}
-                  className="text-mega-red border-mega-red hover:bg-mega-red/5"
+                  className="text-mega-green border-mega-green hover:bg-mega-green/5"
                   data-testid="resend-button"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -182,7 +182,7 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
           <Button
             onClick={handleVerify}
             disabled={otp.length !== 6 || verifyOtpMutation.isPending}
-            className="w-full bg-mega-red hover:bg-red-600 text-white"
+            className="w-full bg-mega-green hover:bg-green-600 text-white"
             data-testid="verify-button"
           >
             {verifyOtpMutation.isPending ? "A verificar..." : "Verificar código"}
@@ -195,7 +195,7 @@ export default function RegisterStep3({ contactMethod, contactValue, onBack, onN
               size="sm"
               onClick={handleResend}
               disabled={timeLeft > 0 || sendOtpMutation.isPending}
-              className="text-mega-red p-0 h-auto"
+              className="text-mega-green p-0 h-auto"
               data-testid="resend-link"
             >
               Clique para reenviar

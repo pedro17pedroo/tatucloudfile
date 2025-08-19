@@ -78,7 +78,7 @@ export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: Re
                 key={plan.id}
                 className={`relative p-6 border-2 rounded-xl cursor-pointer transition-all hover:shadow-lg ${
                   selectedPlan === plan.id
-                    ? 'border-mega-red bg-mega-red/5 shadow-lg'
+                    ? 'border-mega-green bg-mega-green/5 shadow-lg'
                     : 'border-gray-200 hover:border-gray-300'
                 } ${plan.id === 'pro' ? 'ring-2 ring-blue-100' : ''}`}
                 onClick={() => onPlanSelect(plan.id)}
@@ -127,7 +127,7 @@ export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: Re
             <Button
               onClick={onNext}
               disabled={!selectedPlan}
-              className="bg-mega-red hover:bg-red-600 text-white px-8"
+              className="bg-mega-green hover:bg-green-600 text-white px-8"
               data-testid="continue-button"
             >
               Continuar

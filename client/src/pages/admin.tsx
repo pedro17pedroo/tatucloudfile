@@ -290,7 +290,7 @@ export default function Admin() {
               <Card data-testid="stat-api-calls">
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <Activity className="h-8 w-8 text-[#D9272E]" />
+                    <Activity className="h-8 w-8 text-mega-green" />
                     <div className="ml-4">
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Chamadas API (24h)</p>
@@ -542,7 +542,7 @@ export default function Admin() {
                   <Button
                     onClick={() => updateMegaCredentialsMutation.mutate()}
                     disabled={!megaEmail || !megaPassword || updateMegaCredentialsMutation.isPending}
-                    className="bg-[#D9272E] hover:bg-[#B91C1C] text-white"
+                    className="bg-mega-green hover:bg-green-600 text-white"
                     data-testid="save-credentials-button"
                   >
                     {updateMegaCredentialsMutation.isPending ? "A testar..." : "Testar e Guardar Credenciais"}

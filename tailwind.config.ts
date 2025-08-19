@@ -62,7 +62,7 @@ export default {
           ring: "var(--sidebar-ring)",
         },
         // MEGA Brand Colors
-        "mega-red": "hsl(358, 75%, 52%)",
+        "mega-green": "hsl(142, 76%, 36%)",
         "mega-dark": "hsl(0, 0%, 17%)",
         "mega-light": "hsl(0, 0%, 96%)",
         "mega-text": "hsl(0, 0%, 20%)",

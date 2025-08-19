@@ -203,7 +203,7 @@ export default function Subscription() {
         {/* Navigation Header */}
         <div className="mb-8">
           <Link href="/dashboard">
-            <Button variant="ghost" className="mb-4 text-mega-text hover:text-mega-red">
+            <Button variant="ghost" className="mb-4 text-mega-text hover:text-mega-green">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar ao Dashboard
             </Button>
@@ -330,7 +330,7 @@ export default function Subscription() {
                 key={plan.id} 
                 className={`relative transition-all hover:shadow-md ${
                   plan.id === user?.planId 
-                    ? 'ring-2 ring-mega-red border-mega-red' 
+                    ? 'ring-2 ring-mega-green border-mega-green' 
                     : selectedPlan === plan.id 
                       ? 'ring-2 ring-blue-500 border-blue-500' 
                       : ''
@@ -338,7 +338,7 @@ export default function Subscription() {
               >
                 {plan.id === user?.planId && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-mega-red text-white">Plano Atual</Badge>
+                    <Badge className="bg-mega-green text-white">Plano Atual</Badge>
                   </div>
                 )}
                 
@@ -384,7 +384,7 @@ export default function Subscription() {
                         changePlanMutation.mutate(plan.id);
                       }}
                       disabled={changePlanMutation.isPending}
-                      className="w-full bg-mega-red hover:bg-red-600"
+                      className="w-full bg-mega-green hover:bg-green-600"
                       data-testid={`select-plan-${plan.id}`}
                     >
                       {changePlanMutation.isPending && selectedPlan === plan.id ? (

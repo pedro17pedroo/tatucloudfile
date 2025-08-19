@@ -239,7 +239,7 @@ export default function Profile() {
                   <Button
                     onClick={handleUpdateProfile}
                     disabled={updateProfileMutation.isPending}
-                    className="bg-mega-red hover:bg-red-600"
+                    className="bg-mega-green hover:bg-green-600"
                     data-testid="save-profile-button"
                   >
                     {updateProfileMutation.isPending ? (
@@ -347,7 +347,7 @@ export default function Profile() {
                   <Button
                     onClick={handleChangePassword}
                     disabled={changePasswordMutation.isPending}
-                    className="bg-mega-red hover:bg-red-600"
+                    className="bg-mega-green hover:bg-green-600"
                     data-testid="change-password-button"
                   >
                     {changePasswordMutation.isPending ? (

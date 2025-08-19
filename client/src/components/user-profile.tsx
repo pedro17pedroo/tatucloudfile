@@ -248,7 +248,7 @@ export function UserProfile({ user }: UserProfileProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {plans.map((plan) => (
                     <Card key={plan.id} className={`cursor-pointer transition-all ${
-                      plan.id === user.planId ? 'border-mega-red bg-mega-red/5' : 'hover:border-gray-300'
+                      plan.id === user.planId ? 'border-mega-green bg-mega-green/5' : 'hover:border-gray-300'
                     }`}>
                       <CardHeader className="text-center">
                         <CardTitle className="text-lg">{plan.name}</CardTitle>
@@ -304,7 +304,7 @@ export function UserProfile({ user }: UserProfileProps) {
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div 
-                      className="bg-mega-red h-2 rounded-full transition-all duration-300"
+                      className="bg-mega-green h-2 rounded-full transition-all duration-300"
                       style={{ width: `${getStoragePercentage()}%` }}
                     ></div>
                   </div>

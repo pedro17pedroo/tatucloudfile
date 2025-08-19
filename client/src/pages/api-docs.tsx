@@ -58,7 +58,7 @@ export default function ApiDocs() {
 
         {/* API Overview */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-gradient-to-br from-mega-red to-red-600 text-white" data-testid="base-url-card">
+          <Card className="bg-gradient-to-br from-mega-green to-green-600 text-white" data-testid="base-url-card">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-2">Base URL</h3>
               <code className="text-sm bg-black bg-opacity-20 px-2 py-1 rounded">

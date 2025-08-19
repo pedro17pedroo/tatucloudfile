@@ -10,7 +10,7 @@
   --card-foreground: hsl(0, 0%, 20%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(0, 0%, 20%);
-  --primary: hsl(358, 75%, 52%);
+  --primary: hsl(142, 76%, 36%);
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(0, 0%, 17%);
   --secondary-foreground: hsl(0, 0%, 100%);
@@ -22,27 +22,27 @@
   --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(0, 0%, 89%);
   --input: hsl(0, 0%, 96%);
-  --ring: hsl(358, 75%, 52%);
-  --chart-1: hsl(358, 75%, 52%);
+  --ring: hsl(142, 76%, 36%);
+  --chart-1: hsl(142, 76%, 36%);
   --chart-2: hsl(120, 100%, 31%);
   --chart-3: hsl(45, 93%, 56%);
   --chart-4: hsl(147, 78%, 42%);
   --chart-5: hsl(341, 75%, 51%);
   --sidebar: hsl(0, 0%, 96%);
   --sidebar-foreground: hsl(0, 0%, 20%);
-  --sidebar-primary: hsl(358, 75%, 52%);
+  --sidebar-primary: hsl(142, 76%, 36%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
   --sidebar-accent: hsl(207, 90%, 54%);
   --sidebar-accent-foreground: hsl(0, 0%, 100%);
   --sidebar-border: hsl(0, 0%, 89%);
-  --sidebar-ring: hsl(358, 75%, 52%);
+  --sidebar-ring: hsl(142, 76%, 36%);
   --font-sans: 'Open Sans', 'Roboto', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: 0.5rem;
   
   /* MEGA Brand Colors */
-  --mega-red: hsl(358, 75%, 52%);
+  --mega-green: hsl(142, 76%, 36%);
   --mega-dark: hsl(0, 0%, 17%);
   --mega-light: hsl(0, 0%, 96%);
   --mega-text: hsl(0, 0%, 20%);
@@ -57,7 +57,7 @@
   --card-foreground: hsl(0, 0%, 91%);
   --popover: hsl(0, 0%, 9%);
   --popover-foreground: hsl(0, 0%, 91%);
-  --primary: hsl(358, 75%, 52%);
+  --primary: hsl(142, 76%, 36%);
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(0, 0%, 15%);
   --secondary-foreground: hsl(0, 0%, 91%);
@@ -69,20 +69,20 @@
   --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(0, 0%, 15%);
   --input: hsl(0, 0%, 15%);
-  --ring: hsl(358, 75%, 52%);
-  --chart-1: hsl(358, 75%, 52%);
+  --ring: hsl(142, 76%, 36%);
+  --chart-1: hsl(142, 76%, 36%);
   --chart-2: hsl(120, 100%, 31%);
   --chart-3: hsl(45, 93%, 56%);
   --chart-4: hsl(147, 78%, 42%);
   --chart-5: hsl(341, 75%, 51%);
   --sidebar: hsl(0, 0%, 9%);
   --sidebar-foreground: hsl(0, 0%, 91%);
-  --sidebar-primary: hsl(358, 75%, 52%);
+  --sidebar-primary: hsl(142, 76%, 36%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
   --sidebar-accent: hsl(207, 90%, 54%);
   --sidebar-accent-foreground: hsl(0, 0%, 100%);
   --sidebar-border: hsl(0, 0%, 15%);
-  --sidebar-ring: hsl(358, 75%, 52%);
+  --sidebar-ring: hsl(142, 76%, 36%);
 }
 
 @layer base {
@@ -96,12 +96,12 @@
 }
 
 @layer utilities {
-  .text-mega-red {
-    color: var(--mega-red);
+  .text-mega-green {
+    color: var(--mega-green);
   }
   
-  .bg-mega-red {
-    background-color: var(--mega-red);
+  .bg-mega-green {
+    background-color: var(--mega-green);
   }
   
   .text-mega-dark {
@@ -140,15 +140,15 @@
     background-color: var(--mega-accent);
   }
   
-  .border-mega-red {
-    border-color: var(--mega-red);
+  .border-mega-green {
+    border-color: var(--mega-green);
   }
   
-  .hover\:bg-mega-red:hover {
-    background-color: var(--mega-red);
+  .hover\:bg-mega-green:hover {
+    background-color: var(--mega-green);
   }
   
-  .hover\:text-mega-red:hover {
-    color: var(--mega-red);
+  .hover\:text-mega-green:hover {
+    color: var(--mega-green);
   }
 }
