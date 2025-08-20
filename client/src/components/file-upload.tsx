@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, File, X } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,7 @@ interface UploadingFile {
 export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
 
   const { data: plans = [] } = useQuery<Plan[]>({
@@ -78,6 +79,9 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         title: "Upload successful",
         description: `${file.name} has been uploaded successfully`,
       });
+      
+      // Invalidate queries to refresh file list immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
       
       // Remove completed file after a delay
       setTimeout(() => {

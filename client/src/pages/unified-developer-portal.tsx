@@ -239,6 +239,11 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
         statusText: response.statusText,
         data: result
       });
+      
+      // Invalidate file cache if upload was successful
+      if (response.ok && (testEndpoint.endpoint === '/files/upload' || testEndpoint.endpoint === '/files/upload-multiple')) {
+        queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
+      }
     } catch (error: any) {
       console.error('API test error:', error);
       

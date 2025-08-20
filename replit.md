@@ -64,6 +64,12 @@ Preferred communication style: Simple, everyday language.
   - Enhanced developer portal Credentials tab to display real API keys with copy functionality
   - Integrated "Use Active API Key" button in Testing tab for seamless endpoint testing
   - Fixed automatic admin privilege assignment bug - only admin@megafilemanager.com maintains admin status by default
+- **COMPLETED**: File List Cache Invalidation Fix (August 20, 2025):
+  - Fixed issue where file list was not updating after uploads
+  - Added React Query cache invalidation to FileUpload component after successful uploads
+  - Added cache invalidation to API testing interface for upload endpoints
+  - File list now refreshes immediately after any upload operation
+  - Resolved custom file naming corruption issue by disabling the feature entirely
 
 ## 3-Step Registration with OTP Verification (August 19, 2025)
 - **CRITICAL RULE**: All users (except admins) must have a plan assigned - no users without plans allowed
