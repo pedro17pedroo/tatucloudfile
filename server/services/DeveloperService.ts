@@ -313,7 +313,7 @@ export class DeveloperService {
       const trialExpiresAt = new Date();
       trialExpiresAt.setDate(trialExpiresAt.getDate() + (settings.trialDurationDays || 14));
 
-      await db.insert(apiKeys).values({
+      const apiKeyResult = await db.insert(apiKeys).values({
         userId,
         applicationId,
         name: `${systemName} API Key`,
@@ -321,7 +321,10 @@ export class DeveloperService {
         keyHash,
         isTrial: true,
         trialExpiresAt: trialExpiresAt,
-      });
+      }).returning();
+
+      // Store the plain text API key temporarily so user can access it
+      TemporaryApiKeyStore.store(apiKeyResult[0].id, apiKey, userId);
 
       console.log(`[Developer API] Created trial API key for ${systemName}: ${apiKey}`);
       console.log(`[Developer API] Key expires at: ${trialExpiresAt.toISOString()}`);
