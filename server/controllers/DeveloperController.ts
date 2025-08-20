@@ -11,7 +11,7 @@ const developerApplicationSchema = z.object({
 });
 
 export class DeveloperController {
-  // Submit application for API access
+  // Submit application and get immediate API key
   static async submitApplication(req: Request, res: Response) {
     try {
       const userId = (req as any).user?.id;
@@ -21,11 +21,18 @@ export class DeveloperController {
 
       const applicationData = developerApplicationSchema.parse(req.body);
       
-      const application = await DeveloperService.submitApplication(userId, applicationData);
+      const result = await DeveloperService.submitApplication(userId, applicationData);
       
       res.status(201).json({
-        message: 'Aplicação submetida com sucesso',
-        application
+        message: 'Aplicação aprovada! Chave API criada com sucesso.',
+        application: result.application,
+        apiKey: result.apiKey,
+        trialExpiresAt: result.trialExpiresAt,
+        trialInfo: {
+          duration: '14 dias',
+          requestsPerDay: 100,
+          message: 'Período de teste gratuito ativado. Após o término, será necessário uma subscrição.'
+        }
       });
     } catch (error) {
       console.error('Submit application error:', error);

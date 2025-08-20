@@ -9,32 +9,59 @@ import { nanoid } from 'nanoid';
 import bcrypt from 'bcrypt';
 
 export class DeveloperService {
-  // Submit new developer application
-  static async submitApplication(userId: string, applicationData: Omit<InsertDeveloperApplication, 'userId'>): Promise<DeveloperApplication> {
+  // Submit new developer application and create trial API key immediately
+  static async submitApplication(userId: string, applicationData: Omit<InsertDeveloperApplication, 'userId'>): Promise<{
+    application: DeveloperApplication;
+    apiKey: string;
+    trialExpiresAt: Date;
+  }> {
     try {
-      // Check if user already has a pending application
-      const existingApplication = await db
+      // Check if user already has any application or active API key
+      const existingData = await db
         .select()
         .from(developerApplications)
-        .where(and(
-          eq(developerApplications.userId, userId),
-          eq(developerApplications.status, 'pending')
-        ))
+        .where(eq(developerApplications.userId, userId))
         .limit(1);
 
-      if (existingApplication.length > 0) {
-        throw new Error('Já existe uma aplicação pendente. Aguarde a revisão.');
+      if (existingData.length > 0) {
+        throw new Error('Já possui uma aplicação registrada. Verifique o estado da sua chave API.');
       }
 
-      const result = await db.insert(developerApplications).values({
+      // Get trial settings (default values if not configured)
+      const apiSettings = await this.getApiSettings();
+      const trialDays = apiSettings?.trialDurationDays || 14;
+      const trialExpiresAt = new Date();
+      trialExpiresAt.setDate(trialExpiresAt.getDate() + trialDays);
+
+      // Create the application with approved status (since we're giving immediate access)
+      const applicationResult = await db.insert(developerApplications).values({
         userId,
         systemName: applicationData.systemName,
         systemDescription: applicationData.systemDescription,
         websiteUrl: applicationData.websiteUrl || null,
         expectedUsage: applicationData.expectedUsage,
+        status: 'approved', // Automatically approved for trial
+        reviewedAt: new Date(),
       }).returning();
 
-      return result[0];
+      // Generate API key
+      const apiKey = `mk_test_${nanoid(32)}`;
+      const hashedKey = await bcrypt.hash(apiKey, 10);
+
+      // Create API key with trial period
+      await db.insert(apiKeys).values({
+        name: `${applicationData.systemName} - Chave de Teste`,
+        applicationId: applicationResult[0].id,
+        keyHash: hashedKey,
+        status: 'trial',
+        expiresAt: trialExpiresAt,
+      });
+
+      return {
+        application: applicationResult[0],
+        apiKey,
+        trialExpiresAt,
+      };
     } catch (error) {
       console.error('Error submitting developer application:', error);
       throw error;
@@ -57,13 +84,24 @@ export class DeveloperService {
     }
   }
 
-  // Get user's API keys
+  // Get user's API keys via applications
   static async getUserApiKeys(userId: string): Promise<ApiKey[]> {
     try {
+      // Get user's applications first
+      const userApplications = await db
+        .select({ id: developerApplications.id })
+        .from(developerApplications)
+        .where(eq(developerApplications.userId, userId));
+
+      if (userApplications.length === 0) {
+        return [];
+      }
+
+      // Get API keys for user's applications
       const keys = await db
         .select()
         .from(apiKeys)
-        .where(eq(apiKeys.userId, userId))
+        .where(eq(apiKeys.applicationId, userApplications[0].id))
         .orderBy(desc(apiKeys.createdAt));
 
       return keys;
@@ -86,8 +124,8 @@ export class DeveloperService {
           yearlyPrice: '299.99',
           freeRequestsPerDay: 100,
           paidRequestsPerDay: 10000,
-          autoApproveApplications: false,
-          requireManualReview: true,
+          autoApproveApplications: true, // Changed to true for automatic approval
+          requireManualReview: false, // Changed to false for immediate API keys
         }).returning();
         
         return defaultSettings[0];
@@ -200,32 +238,26 @@ export class DeveloperService {
     }
   }
 
-  // Create trial API key
-  private static async createTrialApiKey(userId: string, systemName: string, applicationId: string): Promise<ApiKey> {
+  // Create trial API key (simplified version)
+  private static async createTrialApiKey(userId: string, systemName: string, applicationId: string): Promise<void> {
     try {
       const settings = await this.getApiSettings();
-      const apiKey = nanoid(32);
+      const apiKey = `mk_test_${nanoid(32)}`;
       const keyHash = await bcrypt.hash(apiKey, 10);
 
       const trialExpiresAt = new Date();
-      trialExpiresAt.setDate(trialExpiresAt.getDate() + settings.trialDurationDays);
+      trialExpiresAt.setDate(trialExpiresAt.getDate() + (settings.trialDurationDays || 14));
 
-      const result = await db.insert(apiKeys).values({
-        userId,
+      await db.insert(apiKeys).values({
+        name: `${systemName} - API Key`,
         applicationId,
         keyHash,
-        name: `${systemName} - API Key`,
-        systemName,
-        isActive: true,
-        isTrial: true,
-        trialExpiresAt,
-      }).returning();
+        status: 'trial',
+        expiresAt: trialExpiresAt,
+      });
 
-      // Log the actual API key (only for initial creation)
       console.log(`[Developer API] Created trial API key for ${systemName}: ${apiKey}`);
       console.log(`[Developer API] Key expires at: ${trialExpiresAt.toISOString()}`);
-
-      return result[0];
     } catch (error) {
       console.error('Error creating trial API key:', error);
       throw error;

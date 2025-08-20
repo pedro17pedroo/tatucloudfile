@@ -29,6 +29,12 @@ export default function DeveloperPortal({ user }: DeveloperPortalProps) {
     websiteUrl: '',
     expectedUsage: ''
   });
+  
+  const [newApiKey, setNewApiKey] = useState<{
+    key: string;
+    expiresAt: string;
+    systemName: string;
+  } | null>(null);
 
   // Queries
   const { data: applications, isLoading: applicationsLoading } = useQuery<{
@@ -53,9 +59,25 @@ export default function DeveloperPortal({ user }: DeveloperPortalProps) {
       const response = await apiRequest('/api/portal/developer/applications', 'POST', application);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/portal/developer/applications'] });
-      toast({ title: 'Aplicação submetida com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/developer/api-keys'] });
+      
+      // Store the new API key to show immediately
+      if (data.apiKey) {
+        setNewApiKey({
+          key: data.apiKey,
+          expiresAt: data.trialExpiresAt,
+          systemName: applicationForm.systemName
+        });
+        toast({ 
+          title: 'Aplicação Aprovada!', 
+          description: 'Chave API criada com sucesso. Período de teste ativo.' 
+        });
+      } else {
+        toast({ title: 'Aplicação submetida com sucesso!' });
+      }
+      
       setApplicationForm({ systemName: '', systemDescription: '', websiteUrl: '', expectedUsage: '' });
     },
     onError: (error: any) => {
@@ -114,9 +136,62 @@ export default function DeveloperPortal({ user }: DeveloperPortalProps) {
         </Card>
       )}
 
+      {/* New API Key Display */}
+      {newApiKey && (
+        <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-green-800 dark:text-green-200">
+              <CheckCircle className="w-5 h-5" />
+              <span>Chave API Criada com Sucesso!</span>
+            </CardTitle>
+            <CardDescription className="text-green-700 dark:text-green-300">
+              A sua aplicação foi aprovada automaticamente. Período de teste ativo por 14 dias.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 border rounded-lg p-4">
+              <Label className="text-sm font-medium">Chave API</Label>
+              <div className="flex items-center space-x-2 mt-1">
+                <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono">
+                  {newApiKey.key}
+                </code>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => copyToClipboard(newApiKey.key)}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Sistema:</span> {newApiKey.systemName}
+              </div>
+              <div>
+                <span className="font-medium">Expira em:</span> {new Date(newApiKey.expiresAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Importante:</strong> Guarde esta chave num local seguro. Após 14 dias, será necessário subscrever o serviço pago para continuar a usar a API.
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setNewApiKey(null)}
+              className="w-full"
+            >
+              Fechar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Application Form */}
-      <Card>
-        <CardHeader>
+      {!newApiKey && (!applications || applications.applications.length === 0) && (
+        <Card>
+          <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Code className="w-5 h-5" />
             <span>Solicitar Acesso à API</span>
@@ -177,7 +252,8 @@ export default function DeveloperPortal({ user }: DeveloperPortalProps) {
             {submitApplicationMutation.isPending ? 'Enviando...' : 'Submeter Aplicação'}
           </Button>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
       {/* Applications Status */}
       {applications && applications.applications.length > 0 && (
