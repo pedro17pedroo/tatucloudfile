@@ -3,7 +3,7 @@ import multer from 'multer';
 import { megaService } from '../../services/megaService';
 import { db } from '../../db';
 import { apiKeys, files } from '@shared/schema';
-import { eq, and, like } from 'drizzle-orm';
+import { eq, and, or, like } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
 const apiRouter = Router();
@@ -142,21 +142,32 @@ apiRouter.get('/files/search', async (req: any, res) => {
     const query = req.query.q as string;
     const fileType = req.query.type as string;
 
-    let whereConditions = [eq(files.userId, req.apiUser.userId)];
+    let baseConditions = [eq(files.userId, req.apiUser.userId)];
+    let searchConditions = [];
     
-    // Add search query condition if provided
+    // Add search query conditions if provided - search in ID, fileName, or mimeType
     if (query) {
-      whereConditions.push(like(files.fileName, `%${query}%`));
+      searchConditions.push(
+        eq(files.id, query), // Exact ID match
+        like(files.fileName, `%${query}%`), // Partial filename match
+        like(files.mimeType, `%${query}%`) // Partial mime type match
+      );
     }
     
-    // Add file type condition if provided
+    // Add specific file type condition if provided
     if (fileType) {
-      whereConditions.push(like(files.mimeType, `%${fileType}%`));
+      searchConditions.push(like(files.mimeType, `%${fileType}%`));
+    }
+    
+    // If no search parameters, return all files for the user
+    let finalCondition;
+    if (searchConditions.length > 0) {
+      finalCondition = and(...baseConditions, or(...searchConditions));
+    } else {
+      finalCondition = and(...baseConditions);
     }
 
-    const searchResults = await db.select().from(files).where(
-      and(...whereConditions)
-    );
+    const searchResults = await db.select().from(files).where(finalCondition);
 
     res.json({
       files: searchResults.map((file: any) => ({
