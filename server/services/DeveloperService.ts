@@ -51,9 +51,13 @@ export class DeveloperService {
       // Create API key with trial period
       await db.insert(apiKeys).values({
         userId,
+        name: `${applicationData.systemName} - API Key`,
         keyHash: hashedKey,
-        status: 'trial',
-        expiresAt: trialExpiresAt,
+        applicationId: applicationResult[0].id,
+        systemName: applicationData.systemName,
+        isActive: true,
+        isTrial: true,
+        trialExpiresAt,
       });
 
       return {
