@@ -40,7 +40,14 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     systemName: string;
   } | null>(null);
 
-  const [testEndpoint, setTestEndpoint] = useState({
+  const [testEndpoint, setTestEndpoint] = useState<{
+    method: string;
+    endpoint: string;
+    body: string;
+    headers: { Authorization: string };
+    selectedFile?: File;
+    filePath?: string;
+  }>({
     method: 'GET',
     endpoint: '/files',
     body: '',
@@ -469,7 +476,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                         Authorization: Bearer {
                           hasActiveApiKey && apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) 
                             ? apiKeys.apiKeys.find(key => key.isActive && key.plainTextKey)?.plainTextKey
-                            : hasActiveApiKey ? 'sua_chave_api_aqui' : 'your_api_key'
+                            : hasActiveApiKey ? '[USE_SUA_CHAVE_API_DA_SECAO_ABAIXO]' : 'your_api_key'
                         }
                       </code>
                       <Button 
@@ -477,13 +484,26 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                         variant="outline" 
                         onClick={() => {
                           const activeKeyWithText = apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey);
-                          const keyText = activeKeyWithText?.plainTextKey || 'sua_chave_api_aqui';
-                          copyToClipboard(`Authorization: Bearer ${keyText}`);
+                          if (activeKeyWithText?.plainTextKey) {
+                            copyToClipboard(`Authorization: Bearer ${activeKeyWithText.plainTextKey}`);
+                            toast({ title: 'Copiado!', description: 'Header de autorização copiado para clipboard.' });
+                          } else {
+                            toast({ 
+                              title: 'Chave não disponível', 
+                              description: 'Copie a chave da seção "Chaves API Ativas" abaixo.',
+                              variant: 'destructive'
+                            });
+                          }
                         }}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
                     </div>
+                    {hasActiveApiKey && !apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        💡 Use a chave API da seção "Chaves API Ativas" abaixo
+                      </p>
+                    )}
                   </div>
                   
                   <div>
