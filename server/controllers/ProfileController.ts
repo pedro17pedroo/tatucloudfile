@@ -12,11 +12,7 @@ const updateProfileSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Password atual é obrigatória'),
-  newPassword: z.string().min(8, 'Nova password deve ter pelo menos 8 caracteres'),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords não coincidem",
-  path: ["confirmPassword"],
+  newPassword: z.string().min(6, 'Nova password deve ter pelo menos 6 caracteres'),
 });
 
 export class ProfileController {
