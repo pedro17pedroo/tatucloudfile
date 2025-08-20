@@ -17,7 +17,6 @@ export function Navigation() {
   const navigationItems = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/developer", label: "Portal Desenvolvedor", icon: Code },
-    { path: "/api-docs", label: "API Docs", icon: FileText },
     ...(user?.isAdmin ? [{ path: "/admin", label: "Admin", icon: Settings }] : []),
   ];
 
