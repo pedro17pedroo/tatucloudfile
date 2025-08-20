@@ -199,9 +199,9 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" data-testid="tab-overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="docs" data-testid="tab-docs">Documentação</TabsTrigger>
             <TabsTrigger value="credentials" data-testid="tab-credentials">Credenciais</TabsTrigger>
             <TabsTrigger value="testing" data-testid="tab-testing">Testar API</TabsTrigger>
-            <TabsTrigger value="docs" data-testid="tab-docs">Documentação</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -223,7 +223,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold">Requests/Dia (Teste)</h3>
-                      <p className="text-3xl font-bold">{settings?.trialRequestsPerDay || 100}</p>
+                      <p className="text-3xl font-bold">{settings?.freeRequestsPerDay || 100}</p>
                     </div>
                     <Activity className="h-10 w-10 opacity-80" />
                   </div>
@@ -235,7 +235,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold">Preço Mensal</h3>
-                      <p className="text-3xl font-bold">€{settings?.paidPlanPrice || 29.99}</p>
+                      <p className="text-3xl font-bold">€{settings?.monthlyPrice || '29.99'}</p>
                     </div>
                     <FileText className="h-10 w-10 opacity-80" />
                   </div>
@@ -330,6 +330,59 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
             )}
           </TabsContent>
 
+          <TabsContent value="docs" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Documentação da API
+                </CardTitle>
+                <CardDescription>
+                  Endpoints disponíveis e exemplos de uso
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px] pr-4">
+                  <div className="space-y-6">
+                    {apiEndpoints.map((endpoint, index) => (
+                      <div key={index} className="border-b pb-6 last:border-b-0">
+                        <div className="flex items-center space-x-2 mb-3">
+                          <Badge 
+                            variant={endpoint.method === 'GET' ? 'secondary' : endpoint.method === 'POST' ? 'default' : 'destructive'}
+                          >
+                            {endpoint.method}
+                          </Badge>
+                          <code className="text-sm font-mono">{endpoint.path}</code>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          {endpoint.description}
+                        </p>
+                        
+                        <div>
+                          <Label className="text-xs font-medium">Exemplo de Request:</Label>
+                          <div className="mt-1 bg-gray-100 dark:bg-gray-800 rounded p-3 relative">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="absolute right-2 top-2"
+                              onClick={() => copyToClipboard(endpoint.example)}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                            <pre className="text-xs overflow-x-auto">
+{endpoint.method === 'GET' ? 'No body required' : endpoint.example}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="credentials" className="space-y-6">
             {newApiKey && (
               <Card className="border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800">
@@ -396,12 +449,12 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     <Label>Autenticação</Label>
                     <div className="flex items-center space-x-2 mt-1">
                       <code className="flex-1 bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm">
-                        Authorization: Bearer your_api_key
+                        Authorization: Bearer {hasActiveApiKey ? 'sua_chave_api_aqui' : 'your_api_key'}
                       </code>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        onClick={() => copyToClipboard('Authorization: Bearer your_api_key')}
+                        onClick={() => copyToClipboard('Authorization: Bearer sua_chave_api_aqui')}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
@@ -412,7 +465,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     <Label>Rate Limit</Label>
                     <div className="flex items-center space-x-2 mt-1">
                       <code className="flex-1 bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm">
-                        {settings?.paidPlanRequestsPerDay || 10000} requests/hora
+                        {settings?.paidRequestsPerDay || 10000} requests/hora
                       </code>
                     </div>
                   </div>
@@ -435,8 +488,8 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                               Sistema: {key.systemName}
                             </p>
                             <p className="text-xs text-gray-500">
-                              Criada: {new Date(key.createdAt).toLocaleDateString('pt-PT')}
-                              {key.isTrial && ` • Expira: ${new Date(key.trialExpiresAt!).toLocaleDateString('pt-PT')}`}
+                              Criada: {key.createdAt ? new Date(key.createdAt).toLocaleDateString('pt-PT') : 'Desconhecida'}
+                              {key.isTrial && key.trialExpiresAt && ` • Expira: ${new Date(key.trialExpiresAt).toLocaleDateString('pt-PT')}`}
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -509,6 +562,11 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     placeholder="Bearer your_api_key_here"
                     className="mt-1 font-mono"
                   />
+                  {hasActiveApiKey && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Substitua "your_api_key_here" pela sua chave API ativa
+                    </p>
+                  )}
                 </div>
                 
                 {testEndpoint.method !== 'GET' && (
@@ -564,58 +622,6 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
             </Card>
           </TabsContent>
 
-          <TabsContent value="docs" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="w-5 h-5 mr-2" />
-                  Documentação da API
-                </CardTitle>
-                <CardDescription>
-                  Endpoints disponíveis e exemplos de uso
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[600px] pr-4">
-                  <div className="space-y-6">
-                    {apiEndpoints.map((endpoint, index) => (
-                      <div key={index} className="border-b pb-6 last:border-b-0">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <Badge 
-                            variant={endpoint.method === 'GET' ? 'secondary' : endpoint.method === 'POST' ? 'default' : 'destructive'}
-                          >
-                            {endpoint.method}
-                          </Badge>
-                          <code className="text-sm font-mono">{endpoint.path}</code>
-                        </div>
-                        
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          {endpoint.description}
-                        </p>
-                        
-                        <div>
-                          <Label className="text-xs font-medium">Exemplo de Request:</Label>
-                          <div className="mt-1 bg-gray-100 dark:bg-gray-800 rounded p-3 relative">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="absolute right-2 top-2"
-                              onClick={() => copyToClipboard(endpoint.example)}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                            <pre className="text-xs overflow-x-auto">
-{endpoint.method === 'GET' ? 'No body required' : endpoint.example}
-                            </pre>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
