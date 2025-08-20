@@ -29,6 +29,11 @@ class MegaService {
 
     try {
       console.log('[MEGA] Attempting connection with email:', credentials.email);
+      
+      if (!credentials.encryptedPassword) {
+        throw new Error('No encrypted password found in credentials');
+      }
+      
       const { PasswordEncryption } = await import('../utils/encryption');
       const decryptedPassword = PasswordEncryption.decrypt(credentials.encryptedPassword);
       
