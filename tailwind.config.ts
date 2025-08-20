@@ -61,13 +61,13 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        // MEGA Brand Colors
-        "mega-green": "hsl(142, 76%, 36%)",
-        "mega-dark": "hsl(0, 0%, 17%)",
-        "mega-light": "hsl(0, 0%, 96%)",
-        "mega-text": "hsl(0, 0%, 20%)",
-        "mega-success": "hsl(120, 100%, 31%)",
-        "mega-accent": "hsl(207, 90%, 54%)",
+        // TATU Brand Colors
+        "tatu-green": "hsl(142, 76%, 36%)",
+        "tatu-dark": "hsl(0, 0%, 17%)",
+        "tatu-light": "hsl(0, 0%, 96%)",
+        "tatu-text": "hsl(0, 0%, 20%)",
+        "tatu-success": "hsl(120, 100%, 31%)",
+        "tatu-accent": "hsl(207, 90%, 54%)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

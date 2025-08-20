@@ -54,7 +54,7 @@ export default function AdminLogin() {
             Admin Login
           </CardTitle>
           <CardDescription>
-            Acesse o painel administrativo do MEGA File Manager
+            Acesse o painel administrativo do TATU File Manager
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -68,7 +68,7 @@ export default function AdminLogin() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                placeholder="admin@megafilemanager.com"
+                placeholder="admin@tatufilemanager.com"
                 required
                 data-testid="input-email"
               />
@@ -99,7 +99,7 @@ export default function AdminLogin() {
           
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
             <p><strong>Credenciais padrão:</strong></p>
-            <p>Email: admin@megafilemanager.com</p>
+            <p>Email: admin@tatufilemanager.com</p>
             <p>Password: admin123</p>
           </div>
         </CardContent>

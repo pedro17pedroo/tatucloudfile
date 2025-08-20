@@ -148,7 +148,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
       <Card data-testid="file-grid-header">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-mega-text" data-testid="files-title">Your Files</h2>
+            <h2 className="text-2xl font-bold text-tatu-text" data-testid="files-title">Your Files</h2>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
               <span data-testid="files-count">{filteredFiles.length} files</span>
             </div>
@@ -171,7 +171,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                 <Button
                   onClick={() => createApiKeyMutation.mutate()}
                   disabled={createApiKeyMutation.isPending}
-                  className="bg-mega-accent hover:bg-blue-600 text-white"
+                  className="bg-tatu-accent hover:bg-blue-600 text-white"
                   data-testid="generate-api-key-button"
                 >
                   Generate API Key
@@ -184,7 +184,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
-                className={viewMode === 'grid' ? 'bg-mega-red text-white' : ''}
+                className={viewMode === 'grid' ? 'bg-tatu-green text-white' : ''}
                 data-testid="view-mode-grid"
               >
                 <Grid className="h-4 w-4" />

@@ -34,17 +34,17 @@ export default function Home() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-mega-light flex items-center justify-center">
+      <div className="min-h-screen bg-tatu-light flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mega-red mx-auto mb-4"></div>
-          <p className="text-mega-text">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tatu-green mx-auto mb-4"></div>
+          <p className="text-tatu-text">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-mega-light">
+    <div className="min-h-screen bg-tatu-light">
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

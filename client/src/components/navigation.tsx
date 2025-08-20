@@ -26,9 +26,9 @@ export function Navigation() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <Cloud className="h-8 w-8 text-mega-red mr-3" data-testid="nav-logo-icon" />
-              <span className="text-xl font-bold text-mega-text" data-testid="nav-logo-text">
-                MEGA File Manager
+              <Cloud className="h-8 w-8 text-tatu-green mr-3" data-testid="nav-logo-icon" />
+              <span className="text-xl font-bold text-tatu-text" data-testid="nav-logo-text">
+                TATU File Manager
               </span>
             </div>
             <div className="hidden md:block ml-10">
@@ -42,8 +42,8 @@ export function Navigation() {
                       href={item.path}
                       className={`px-3 py-2 rounded-md text-sm font-medium flex items-center ${
                         isActive
-                          ? "text-mega-red border-b-2 border-mega-red"
-                          : "text-mega-text hover:text-mega-red"
+                          ? "text-tatu-green border-b-2 border-tatu-green"
+                          : "text-tatu-text hover:text-tatu-green"
                       }`}
                       data-testid={`nav-link-${item.label.toLowerCase().replace(' ', '-')}`}
                     >
@@ -66,7 +66,7 @@ export function Navigation() {
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium text-mega-text">
+                  <span className="text-sm font-medium text-tatu-text">
                     {user?.firstName || user?.email}
                   </span>
                 </Button>

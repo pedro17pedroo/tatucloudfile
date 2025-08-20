@@ -49,14 +49,14 @@ export function StorageQuota() {
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
-            <Cloud className="h-5 w-5 text-mega-accent mr-2" />
-            <h3 className="text-lg font-semibold text-mega-text" data-testid="storage-title">Storage Usage</h3>
+            <Cloud className="h-5 w-5 text-tatu-accent mr-2" />
+            <h3 className="text-lg font-semibold text-tatu-text" data-testid="storage-title">Storage Usage</h3>
           </div>
           <div className="text-right">
             <div className="text-sm text-gray-500">
               Plan: {currentPlan?.name || user.planId || 'Unknown'}
             </div>
-            <div className="text-lg font-semibold text-mega-text" data-testid="storage-usage">
+            <div className="text-lg font-semibold text-tatu-text" data-testid="storage-usage">
               {formatBytes(storageUsed)} / {storageLimit > 0 ? formatBytes(storageLimit) : '0 B'}
             </div>
           </div>

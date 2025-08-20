@@ -62,14 +62,14 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-mega-light">
+    <div className="min-h-screen bg-tatu-light">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Cloud className="h-8 w-8 text-mega-red mr-3" data-testid="logo-icon" />
-              <span className="text-xl font-bold text-mega-text" data-testid="logo-text">MEGA File Manager</span>
+              <Cloud className="h-8 w-8 text-tatu-green mr-3" data-testid="logo-icon" />
+              <span className="text-xl font-bold text-tatu-text" data-testid="logo-text">TATU File Manager</span>
             </div>
             <div className="flex items-center space-x-4">
               <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
@@ -85,7 +85,7 @@ export default function Landing() {
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle className="text-center text-2xl font-bold text-gray-900">
-                      Bem-vindo ao MEGA File Manager
+                      Bem-vindo ao TATU File Manager
                     </DialogTitle>
                   </DialogHeader>
                   
@@ -123,7 +123,7 @@ export default function Landing() {
                     <Button 
                       onClick={handleLogin}
                       disabled={loginMutation.isPending}
-                      className="w-full bg-mega-green hover:bg-green-600 text-white"
+                      className="w-full bg-tatu-green hover:bg-green-600 text-white"
                       data-testid="login-submit-button"
                     >
                       {loginMutation.isPending ? "A entrar..." : "Entrar"}
@@ -135,7 +135,7 @@ export default function Landing() {
               <Button
                 variant="outline"
                 onClick={() => navigate("/register")}
-                className="text-mega-green border-mega-green hover:bg-mega-green/5"
+                className="text-tatu-green border-tatu-green hover:bg-tatu-green/5"
                 data-testid="register-nav-button"
               >
                 Criar conta
@@ -146,21 +146,21 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-mega-light via-white to-mega-light py-20">
+      <section className="relative bg-gradient-to-br from-tatu-light via-white to-tatu-light py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl font-bold text-mega-text mb-6 leading-tight">
+            <h1 className="text-5xl font-bold text-tatu-text mb-6 leading-tight">
               Secure Cloud Storage
-              <span className="text-mega-green block">File API</span>
+              <span className="text-tatu-green block">File API</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Connect your applications seamlessly with MEGA cloud storage using our RESTful
+              Connect your applications seamlessly with TATU cloud storage using our RESTful
               API. Upload, download, and manage files with enterprise-grade security.
             </p>
             <div className="flex justify-center">
               <Button
                 onClick={() => navigate("/register")}
-                className="bg-mega-green hover:bg-green-600 text-white px-8 py-3 text-lg"
+                className="bg-tatu-green hover:bg-green-600 text-white px-8 py-3 text-lg"
                 data-testid="hero-register-button"
               >
                 Começar Gratuitamente
@@ -174,8 +174,8 @@ export default function Landing() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-mega-text mb-4">
-              Everything you need to integrate with MEGA
+            <h2 className="text-4xl font-bold text-tatu-text mb-4">
+              Everything you need to integrate with TATU
             </h2>
             <p className="text-xl text-gray-600">
               Powerful APIs and developer tools to build amazing file management experiences
@@ -183,35 +183,35 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Upload className="h-8 w-8 text-mega-green" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
+              <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Upload className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-mega-text mb-2">File Upload</h3>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">File Upload</h3>
               <p className="text-gray-600">Upload files of any size with resumable uploads and progress tracking</p>
             </div>
 
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Download className="h-8 w-8 text-mega-green" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
+              <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-mega-text mb-2">File Download</h3>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">File Download</h3>
               <p className="text-gray-600">Secure file downloads with temporary links and access controls</p>
             </div>
 
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="h-8 w-8 text-mega-green" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
+              <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-mega-text mb-2">File Search</h3>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">File Search</h3>
               <p className="text-gray-600">Advanced search capabilities across your entire file library</p>
             </div>
 
-            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-mega-green/30 hover:shadow-lg transition-all">
-              <div className="bg-mega-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-mega-green" />
+            <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
+              <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-mega-text mb-2">Enterprise Security</h3>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">Enterprise Security</h3>
               <p className="text-gray-600">End-to-end encryption with enterprise-grade security</p>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-mega-green">
+      <section className="py-20 bg-tatu-green">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white mb-6">
             Ready to get started?

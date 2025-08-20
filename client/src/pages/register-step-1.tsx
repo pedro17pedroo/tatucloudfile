@@ -78,7 +78,7 @@ export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: Re
                 key={plan.id}
                 className={`relative p-6 border-2 rounded-xl cursor-pointer transition-all hover:shadow-lg ${
                   selectedPlan === plan.id
-                    ? 'border-mega-green bg-mega-green/5 shadow-lg'
+                    ? 'border-tatu-green bg-tatu-green/5 shadow-lg'
                     : 'border-gray-200 hover:border-gray-300'
                 } ${plan.id === 'pro' ? 'ring-2 ring-blue-100' : ''}`}
                 onClick={() => onPlanSelect(plan.id)}
@@ -93,14 +93,14 @@ export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: Re
                 )}
                 
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-mega-text">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-tatu-text">{plan.name}</h3>
                   {selectedPlan === plan.id && (
-                    <CheckCircle className="h-6 w-6 text-mega-red" />
+                    <CheckCircle className="h-6 w-6 text-tatu-green" />
                   )}
                 </div>
 
                 <div className="mb-4">
-                  <div className="text-3xl font-bold text-mega-text">
+                  <div className="text-3xl font-bold text-tatu-text">
                     {formatPrice(plan.pricePerMonth)}
                   </div>
                   <div className="text-sm text-gray-600">
@@ -127,7 +127,7 @@ export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: Re
             <Button
               onClick={onNext}
               disabled={!selectedPlan}
-              className="bg-mega-green hover:bg-green-600 text-white px-8"
+              className="bg-tatu-green hover:bg-green-600 text-white px-8"
               data-testid="continue-button"
             >
               Continuar

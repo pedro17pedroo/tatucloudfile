@@ -145,20 +145,20 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         {...getRootProps()} 
         className={`cursor-pointer transition-colors ${
           isDragActive 
-            ? 'border-mega-red border-2 border-dashed bg-red-50' 
-            : 'border-dashed border-2 border-gray-300 hover:border-mega-red hover:bg-gray-50'
+            ? 'border-tatu-green border-2 border-dashed bg-green-50' 
+            : 'border-dashed border-2 border-gray-300 hover:border-tatu-green hover:bg-gray-50'
         }`}
         data-testid="file-upload-dropzone"
       >
         <CardContent className="p-8 text-center">
           <input {...getInputProps()} data-testid="file-upload-input" />
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-mega-text mb-2" data-testid="upload-title">
+          <h3 className="text-lg font-semibold text-tatu-text mb-2" data-testid="upload-title">
             {isDragActive ? 'Drop files here' : 'Drag and drop files here'}
           </h3>
           <p className="text-gray-500 mb-4">
             or{' '}
-            <Button variant="link" className="text-mega-red font-medium p-0" data-testid="browse-files-button">
+            <Button variant="link" className="text-tatu-green font-medium p-0" data-testid="browse-files-button">
               browse files
             </Button>{' '}
             from your computer
@@ -178,15 +178,15 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
       {uploadingFiles.length > 0 && (
         <Card data-testid="upload-progress-card">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-mega-text mb-4">Upload Progress</h3>
+            <h3 className="text-lg font-semibold text-tatu-text mb-4">Upload Progress</h3>
             <div className="space-y-3">
               {uploadingFiles.map((uploadingFile, index) => (
                 <div key={index} className="flex items-center justify-between py-2" data-testid={`upload-item-${index}`}>
                   <div className="flex items-center flex-1">
-                    <File className="h-5 w-5 text-mega-accent mr-3" />
+                    <File className="h-5 w-5 text-tatu-accent mr-3" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-mega-text" data-testid={`upload-filename-${index}`}>
+                        <span className="text-sm font-medium text-tatu-text" data-testid={`upload-filename-${index}`}>
                           {uploadingFile.file.name}
                         </span>
                         <Button
