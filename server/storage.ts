@@ -522,6 +522,7 @@ export class MemoryStorage implements IStorage {
       id: randomUUID(),
       userId,
       keyHash,
+      encryptedKey: null,
       name,
       systemName: null,
       applicationId: null,

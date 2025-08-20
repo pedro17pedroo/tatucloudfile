@@ -71,6 +71,7 @@ export const apiKeys = pgTable("api_keys", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   applicationId: varchar("application_id").references(() => developerApplications.id),
   keyHash: varchar("key_hash").notNull(),
+  encryptedKey: varchar("encrypted_key"), // Encrypted plain text key for retrieval
   name: varchar("name").notNull(),
   systemName: varchar("system_name"), // System that uses this key
   isActive: boolean("is_active").default(true),

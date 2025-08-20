@@ -7,7 +7,7 @@ import {
 import { eq, desc, and, count, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcrypt';
-import { TemporaryApiKeyStore } from '../utils/temporaryApiKeyStore';
+import { KeyEncryption } from '../utils/keyEncryption';
 
 export class DeveloperService {
   // Submit new developer application and create trial API key immediately
@@ -48,21 +48,20 @@ export class DeveloperService {
       // Generate API key
       const apiKey = `mk_test_${nanoid(32)}`;
       const hashedKey = await bcrypt.hash(apiKey, 10);
+      const encryptedKey = KeyEncryption.encrypt(apiKey);
 
       // Create API key with trial period
       const apiKeyResult = await db.insert(apiKeys).values({
         userId,
         name: `${applicationData.systemName} - API Key`,
         keyHash: hashedKey,
+        encryptedKey, // Store encrypted key for retrieval
         applicationId: applicationResult[0].id,
         systemName: applicationData.systemName,
         isActive: true,
         isTrial: true,
         trialExpiresAt,
       }).returning();
-
-      // Store the plain text API key temporarily so user can access it
-      TemporaryApiKeyStore.store(apiKeyResult[0].id, apiKey, userId);
 
       return {
         application: applicationResult[0],
@@ -117,26 +116,18 @@ export class DeveloperService {
         )
         .orderBy(desc(apiKeys.createdAt));
 
-      // Try to get the plain text key for recently created keys
-      const keysWithPlainText = keys.map(key => {
-        const plainTextKey = TemporaryApiKeyStore.retrieve(key.id, userId);
-        return {
-          ...key,
-          plainTextKey: plainTextKey || undefined
-        };
-      });
-
-      return keysWithPlainText;
+      // Return API keys - plain text is available via separate endpoint
+      return keys;
     } catch (error) {
       console.error('Error getting user API keys:', error);
       throw error;
     }
   }
 
-  // Get a specific API key in plain text (if available in temporary storage)
+  // Get a specific API key in plain text (from encrypted database storage)
   static async getApiKeyPlainText(keyId: string, userId: string): Promise<string | null> {
     try {
-      // First verify the key belongs to the user
+      // First verify the key belongs to the user and get encrypted key
       const userApplications = await db
         .select({ id: developerApplications.id })
         .from(developerApplications)
@@ -146,23 +137,24 @@ export class DeveloperService {
         return null;
       }
 
-      const keyExists = await db
-        .select()
+      const keyData = await db
+        .select({ encryptedKey: apiKeys.encryptedKey })
         .from(apiKeys)
         .where(
           and(
             eq(apiKeys.id, keyId),
-            eq(apiKeys.applicationId, userApplications[0].id)
+            eq(apiKeys.applicationId, userApplications[0].id),
+            eq(apiKeys.isActive, true)
           )
         )
         .limit(1);
 
-      if (keyExists.length === 0) {
+      if (keyData.length === 0 || !keyData[0].encryptedKey) {
         return null;
       }
 
-      // Get the plain text key from temporary storage
-      return TemporaryApiKeyStore.retrieve(keyId, userId);
+      // Decrypt and return the API key
+      return KeyEncryption.decrypt(keyData[0].encryptedKey);
     } catch (error) {
       console.error('Error getting API key plain text:', error);
       return null;
@@ -309,22 +301,21 @@ export class DeveloperService {
       const settings = await this.getApiSettings();
       const apiKey = `mk_test_${nanoid(32)}`;
       const keyHash = await bcrypt.hash(apiKey, 10);
+      const encryptedKey = KeyEncryption.encrypt(apiKey);
 
       const trialExpiresAt = new Date();
       trialExpiresAt.setDate(trialExpiresAt.getDate() + (settings.trialDurationDays || 14));
 
-      const apiKeyResult = await db.insert(apiKeys).values({
+      await db.insert(apiKeys).values({
         userId,
         applicationId,
         name: `${systemName} API Key`,
         systemName,
         keyHash,
+        encryptedKey, // Store encrypted key for retrieval
         isTrial: true,
         trialExpiresAt: trialExpiresAt,
       }).returning();
-
-      // Store the plain text API key temporarily so user can access it
-      TemporaryApiKeyStore.store(apiKeyResult[0].id, apiKey, userId);
 
       console.log(`[Developer API] Created trial API key for ${systemName}: ${apiKey}`);
       console.log(`[Developer API] Key expires at: ${trialExpiresAt.toISOString()}`);
