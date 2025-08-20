@@ -102,18 +102,8 @@ async function initializeDatabase() {
       }
     }
 
-    // Grant admin privileges to test user  
-    const testUserEmail = 'pedro17pedroo@gmail.com';
-    const testUsers = await db.select().from(users).where(eq(users.email, testUserEmail));
-    if (testUsers.length > 0) {
-      const testUser = testUsers[0];
-      if (!testUser.isAdmin) {
-        console.log('[Admin] Granting admin privileges to test user...');
-        await db.update(users)
-          .set({ isAdmin: true })
-          .where(eq(users.id, testUser.id));
-      }
-    }
+    // Note: Test users are created as regular users
+    // Only admin@megafilemanager.com should have admin privileges by default
 
     // Initialize Angolan payment methods
     const { AdminService } = await import('../services/AdminService');
