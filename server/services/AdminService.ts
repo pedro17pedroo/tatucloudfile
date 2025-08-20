@@ -423,6 +423,16 @@ export class AdminService {
         isActive: true
       }).returning();
 
+      // Automatically update account status after successful credential save
+      setTimeout(async () => {
+        try {
+          await this.updateMegaAccountStatus();
+          console.log('[MEGA] Account status updated after credential save');
+        } catch (error) {
+          console.error('[MEGA] Failed to auto-update account status:', error);
+        }
+      }, 1000);
+
       return result[0];
     } catch (error) {
       console.error('Error updating MEGA credentials:', error);
@@ -446,18 +456,39 @@ export class AdminService {
       const credentials = await this.getMegaCredentials();
       if (!credentials) return null;
 
+      console.log('[MEGA Status] Connecting to get account info...');
       const storage = new Storage({ email: credentials.email, password: credentials.password });
       await storage.ready;
 
-      const accountInfo = await storage.getAccountInfo();
+      console.log('[MEGA Status] Connected, retrieving account information...');
+      
+      // Get storage info directly from storage properties
+      const totalSpace = storage.spaceTotal || 0;
+      const usedSpace = storage.spaceUsed || 0;
+      const availableSpace = totalSpace - usedSpace;
+      
+      // Determine account type based on space limits
+      let accountType = 'free';
+      if (totalSpace > 53687091200) { // More than 50GB
+        accountType = 'business';
+      } else if (totalSpace > 21474836480) { // More than 20GB
+        accountType = 'pro';
+      }
+      
+      console.log('[MEGA Status] Account info:', {
+        totalSpace: totalSpace,
+        usedSpace: usedSpace,
+        availableSpace: availableSpace,
+        accountType: accountType
+      });
       
       const statusData: InsertMegaAccountStatus = {
-        totalSpace: (accountInfo as any).spaceTotal?.toString() || '0',
-        usedSpace: (accountInfo as any).spaceUsed?.toString() || '0',
-        availableSpace: ((accountInfo as any).spaceTotal - (accountInfo as any).spaceUsed)?.toString() || '0',
-        accountType: (accountInfo as any).type || 'free',
-        transferQuota: (accountInfo as any).transferMax?.toString() || '0',
-        transferUsed: (accountInfo as any).transferUsed?.toString() || '0',
+        totalSpace: totalSpace.toString(),
+        usedSpace: usedSpace.toString(), 
+        availableSpace: availableSpace.toString(),
+        accountType: accountType,
+        transferQuota: (storage.downloadBandwidthTotal || 0).toString(),
+        transferUsed: (storage.downloadBandwidthUsed || 0).toString(),
         isConnected: true,
         lastChecked: new Date(),
         error: null
@@ -467,6 +498,7 @@ export class AdminService {
       await db.delete(megaAccountStatus);
       const result = await db.insert(megaAccountStatus).values(statusData).returning();
       
+      console.log('[MEGA Status] Status updated successfully');
       return result[0];
     } catch (error) {
       console.error('Error updating MEGA account status:', error);

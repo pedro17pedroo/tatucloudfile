@@ -295,11 +295,19 @@ export function AdminPanelWithSidebar() {
       const response = await apiRequest('/api/portal/admin/mega-credentials', 'PUT', credentials);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/mega-credentials'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/mega-account-status'] });
       toast({ title: 'Credenciais MEGA guardadas com sucesso!' });
       setMegaCredentials({ email: '', password: '' });
+      
+      // Wait a moment then refresh account status
+      setTimeout(async () => {
+        try {
+          await refreshMegaStatusMutation.mutateAsync();
+        } catch (error) {
+          console.error('Failed to auto-refresh MEGA status:', error);
+        }
+      }, 2000);
     },
     onError: (error: any) => {
       toast({ 
