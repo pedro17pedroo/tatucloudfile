@@ -290,7 +290,7 @@ export class DatabaseStorage implements IStorage {
       .from(apiUsage)
       .where(and(
         eq(apiUsage.userId, userId),
-        sql`${apiUsage.timestamp} > ${oneHourAgo}`
+        sql`${apiUsage.createdAt} > ${oneHourAgo}`
       ));
     
     return {
@@ -523,7 +523,11 @@ export class MemoryStorage implements IStorage {
       userId,
       keyHash,
       name,
+      systemName: null,
+      applicationId: null,
       isActive: true,
+      isTrial: true,
+      trialExpiresAt: null,
       lastUsed: null,
       createdAt: new Date(),
     };
@@ -608,6 +612,7 @@ export class MemoryStorage implements IStorage {
       id: randomUUID(),
       ...credentials,
       passwordHash,
+      encryptedPassword: credentials.encryptedPassword || null,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -620,7 +625,7 @@ export class MemoryStorage implements IStorage {
     const apiUsageEntry: ApiUsage = {
       id: randomUUID(),
       ...usage,
-      timestamp: new Date(),
+      createdAt: new Date(),
     };
     this.apiUsageEntries.push(apiUsageEntry);
   }
@@ -631,7 +636,7 @@ export class MemoryStorage implements IStorage {
     
     return {
       total: userUsage.length,
-      lastHour: userUsage.filter(usage => (usage.timestamp?.getTime() || 0) > oneHourAgo.getTime()).length,
+      lastHour: userUsage.filter(usage => (usage.createdAt?.getTime() || 0) > oneHourAgo.getTime()).length,
     };
   }
 
@@ -664,11 +669,15 @@ export class MemoryStorage implements IStorage {
       amount: payment.amount,
       currency: payment.currency || 'EUR',
       status: payment.status || 'pending',
-      paymentMethod: payment.paymentMethod || null,
+      paymentMethod: payment.paymentMethod || 'bank_transfer',
       transactionId: payment.transactionId || null,
+      bankReference: null,
+      notes: null,
+      approvedBy: null,
+      approvedAt: null,
       receiptUrl: payment.receiptUrl || null,
       createdAt: new Date(),
-      paidAt: payment.paidAt || null,
+      updatedAt: new Date(),
     };
     this.payments.set(result.id, result);
     return result;
