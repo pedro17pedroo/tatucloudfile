@@ -235,6 +235,31 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
 }`
     },
     {
+      method: 'POST',
+      path: '/api/files/upload-multiple',
+      description: 'Upload múltiplo com nomes customizados',
+      example: `FormData:
+files: [file1, file2, ...]
+folderPath: "documents/projects"
+customNames: ["new_name1.pdf", "new_name2.jpg"]`
+    },
+    {
+      method: 'POST',
+      path: '/api/folders',
+      description: 'Criar pasta',
+      example: `{
+  "folderPath": "documents/projects/2024"
+}`
+    },
+    {
+      method: 'PUT',
+      path: '/api/files/{id}/move',
+      description: 'Mover ficheiro para pasta',
+      example: `{
+  "newPath": "documents/archive"
+}`
+    },
+    {
       method: 'GET',
       path: '/api/files',
       description: 'Listar ficheiros',
@@ -670,7 +695,8 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                       onChange={(e) => {
                         const endpoint = e.target.value;
                         let method = 'GET';
-                        if (endpoint === '/files/upload') method = 'POST';
+                        if (endpoint === '/files/upload' || endpoint === '/files/upload-multiple' || endpoint === '/folders') method = 'POST';
+                        else if (endpoint === '/files/{id}/move') method = 'PUT';
                         else if (endpoint === '/files/{id}') method = 'DELETE';
                         
                         setTestEndpoint({ 
@@ -685,6 +711,9 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     >
                       <option value="/files">GET /files</option>
                       <option value="/files/upload">POST /files/upload</option>
+                      <option value="/files/upload-multiple">POST /files/upload-multiple</option>
+                      <option value="/folders">POST /folders</option>
+                      <option value="/files/{id}/move">PUT /files/&#123;id&#125;/move</option>
                       <option value="/files/search">GET /files/search</option>
                       <option value="/files/{id}/download">GET /files/&#123;id&#125;/download</option>
                       <option value="/files/{id}">DELETE /files/&#123;id&#125;</option>

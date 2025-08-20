@@ -211,4 +211,119 @@ apiRouter.delete('/files/:id', async (req: any, res) => {
   }
 });
 
+// Create Folder
+apiRouter.post('/folders', async (req: any, res) => {
+  try {
+    const { folderPath } = req.body;
+    
+    if (!folderPath) {
+      return res.status(400).json({ error: 'Folder path is required' });
+    }
+
+    const result = await megaService.createFolder(folderPath);
+    
+    res.json({
+      success: true,
+      folder: result
+    });
+  } catch (error) {
+    console.error('Create folder error:', error);
+    res.status(500).json({ error: 'Failed to create folder' });
+  }
+});
+
+// Move File
+apiRouter.put('/files/:id/move', async (req: any, res) => {
+  try {
+    const { newPath } = req.body;
+    
+    if (!newPath) {
+      return res.status(400).json({ error: 'New path is required' });
+    }
+
+    const fileRecord = await db.select().from(files).where(
+      and(eq(files.id, req.params.id), eq(files.userId, req.apiUser.userId))
+    );
+
+    if (fileRecord.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileRecord[0];
+    const result = await megaService.moveFile(file.megaFileId, newPath);
+    
+    // Update file path in database
+    await db.update(files).set({ 
+      filePath: `/${newPath}/${file.fileName}`
+    }).where(eq(files.id, req.params.id));
+
+    res.json({
+      success: true,
+      file: result
+    });
+  } catch (error) {
+    console.error('Move file error:', error);
+    res.status(500).json({ error: 'Failed to move file' });
+  }
+});
+
+// Advanced Multiple File Upload
+apiRouter.post('/files/upload-multiple', upload.array('files'), async (req: any, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files provided' });
+    }
+
+    const folderPath = req.body.folderPath || null;
+    const customNames = req.body.customNames ? JSON.parse(req.body.customNames) : {};
+
+    // Prepare upload data
+    const uploads = (req.files as any[]).map((file, index) => ({
+      buffer: file.buffer,
+      originalName: file.originalname,
+      customName: customNames[index] || null,
+      mimeType: file.mimetype,
+      size: file.size
+    }));
+
+    // Upload to MEGA
+    const megaResults = await megaService.uploadMultipleFiles(uploads, folderPath);
+
+    // Store file metadata in database
+    const fileRecords = [];
+    for (let i = 0; i < megaResults.length; i++) {
+      const megaResult = megaResults[i];
+      const upload = uploads[i];
+      
+      const fileRecord = await db.insert(files).values({
+        userId: req.apiUser.userId,
+        fileName: megaResult.name,
+        fileSize: upload.size.toString(),
+        mimeType: upload.mimeType,
+        megaFileId: megaResult.id,
+        filePath: `${megaResult.folderPath}/${megaResult.name}`,
+      }).returning();
+
+      fileRecords.push({
+        id: fileRecord[0].id,
+        originalName: megaResult.originalName,
+        name: megaResult.name,
+        size: upload.size,
+        uploadedAt: fileRecord[0].uploadedAt,
+        downloadUrl: `/api/v1/files/${fileRecord[0].id}/download`,
+        folderPath: megaResult.folderPath
+      });
+    }
+
+    res.json({
+      success: true,
+      files: fileRecords,
+      totalUploaded: fileRecords.length
+    });
+  } catch (error) {
+    console.error('Multiple upload error:', error);
+    res.status(500).json({ error: 'Failed to upload files' });
+  }
+});
+
 export { apiRouter };

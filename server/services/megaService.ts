@@ -168,6 +168,127 @@ class MegaService {
     this.megaStorage = null;
     this.connectionPromise = null;
   }
+
+  // Create folder
+  async createFolder(folderPath: string): Promise<any> {
+    try {
+      const megaStorage = await this.getMegaStorage();
+      const pathParts = folderPath.split('/').filter(part => part);
+      let currentFolder = megaStorage.root;
+      
+      // Navigate/create each folder in the path
+      for (const folderName of pathParts) {
+        let folder = currentFolder.children?.find((child: any) => 
+          child.name === folderName && child.directory
+        );
+        
+        if (!folder) {
+          folder = await currentFolder.mkdir(folderName);
+        }
+        currentFolder = folder;
+      }
+
+      return {
+        id: currentFolder.nodeId,
+        name: currentFolder.name,
+        path: folderPath
+      };
+    } catch (error) {
+      console.error('Error creating folder in MEGA:', error);
+      throw new Error('Failed to create folder in MEGA');
+    }
+  }
+
+  // Move file to different folder
+  async moveFile(fileId: string, newPath: string): Promise<any> {
+    try {
+      const megaStorage = await this.getMegaStorage();
+      
+      // Find the file to move
+      const file = await this.findFileById(megaStorage.root, fileId);
+      if (!file) {
+        throw new Error('File not found in MEGA');
+      }
+
+      // Create destination folder if needed
+      const pathParts = newPath.split('/').filter(part => part);
+      let targetFolder = megaStorage.root;
+      
+      for (const folderName of pathParts) {
+        let folder = targetFolder.children?.find((child: any) => 
+          child.name === folderName && child.directory
+        );
+        
+        if (!folder) {
+          folder = await targetFolder.mkdir(folderName);
+        }
+        targetFolder = folder;
+      }
+
+      // Move file to new folder
+      await file.moveTo(targetFolder);
+
+      return {
+        id: file.nodeId,
+        name: file.name,
+        newPath: newPath
+      };
+    } catch (error) {
+      console.error('Error moving file in MEGA:', error);
+      throw new Error('Failed to move file in MEGA');
+    }
+  }
+
+  // Advanced upload with multiple files, custom names and folder creation
+  async uploadMultipleFiles(uploads: Array<{
+    buffer: Buffer;
+    originalName: string;
+    customName?: string;
+    mimeType: string;
+    size: number;
+  }>, folderPath?: string): Promise<any[]> {
+    try {
+      const megaStorage = await this.getMegaStorage();
+      let targetFolder = megaStorage.root;
+      
+      // Create folder structure if specified
+      if (folderPath) {
+        const pathParts = folderPath.split('/').filter(part => part);
+        for (const folderName of pathParts) {
+          let folder = targetFolder.children?.find((child: any) => 
+            child.name === folderName && child.directory
+          );
+          
+          if (!folder) {
+            folder = await targetFolder.mkdir(folderName);
+          }
+          targetFolder = folder;
+        }
+      }
+
+      // Upload all files
+      const results = [];
+      for (const upload of uploads) {
+        const fileName = upload.customName || upload.originalName;
+        const file = await targetFolder.upload(fileName, upload.buffer).complete;
+        
+        results.push({
+          id: file.nodeId,
+          originalName: upload.originalName,
+          name: file.name,
+          size: file.size,
+          mimeType: upload.mimeType,
+          url: file.link(),
+          folderPath: folderPath || '/'
+        });
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error uploading multiple files to MEGA:', error);
+      throw new Error('Failed to upload multiple files to MEGA');
+    }
+  }
 }
 
 export const megaService = new MegaService();
