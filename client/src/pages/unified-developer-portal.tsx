@@ -190,6 +190,25 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
         if (testEndpoint.folderPath) {
           formData.append('folderPath', testEndpoint.folderPath);
         }
+        
+        // Add custom names if they exist in the body preview
+        try {
+          const bodyData = JSON.parse(testEndpoint.body);
+          if (bodyData.files && Array.isArray(bodyData.files)) {
+            const customNames: { [key: number]: string } = {};
+            bodyData.files.forEach((fileInfo: any, index: number) => {
+              if (fileInfo.customName && fileInfo.customName !== `file_${index + 1}_${fileInfo.name.split('.')[0]}.${fileInfo.name.split('.').pop()}`) {
+                customNames[index] = fileInfo.customName;
+              }
+            });
+            if (Object.keys(customNames).length > 0) {
+              formData.append('customNames', JSON.stringify(customNames));
+            }
+          }
+        } catch (error) {
+          console.log('Could not parse custom names from body preview');
+        }
+        
         requestOptions.body = formData;
         // Remove Content-Type header for FormData (browser will set it automatically)
       } else if (testEndpoint.method !== 'GET' && testEndpoint.body) {
@@ -872,7 +891,7 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                         </div>
                       </div>
                     ) : testEndpoint.endpoint === '/files/upload-multiple' ? (
-                      <div className="space-y-3 mt-1">
+                      <div className="space-y-4 mt-1">
                         <div>
                           <Label htmlFor="multiple-file-upload" className="text-sm text-gray-600">Ficheiros para Upload (múltiplos)</Label>
                           <input
@@ -882,45 +901,156 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                             className="w-full mt-1 p-2 border rounded-md"
                             onChange={(e) => {
                               if (e.target.files && e.target.files.length > 0) {
-                                const files = Array.from(e.target.files);
-                                const fileData = files.map((file, index) => ({
+                                const newFiles = Array.from(e.target.files);
+                                const existingFiles = testEndpoint.selectedFiles || [];
+                                const allFiles = [...existingFiles, ...newFiles];
+                                
+                                const fileData = allFiles.map((file, index) => ({
                                   name: file.name,
                                   size: file.size,
                                   type: file.type,
-                                  customName: `file_${index + 1}_${file.name}`
+                                  customName: `file_${index + 1}_${file.name.split('.')[0]}.${file.name.split('.').pop()}`
                                 }));
+                                
                                 setTestEndpoint({
                                   ...testEndpoint,
                                   body: JSON.stringify({
                                     files: fileData,
                                     folderPath: testEndpoint.folderPath || null
                                   }, null, 2),
-                                  selectedFiles: files
+                                  selectedFiles: allFiles
                                 });
                               }
                             }}
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Selecione múltiplos ficheiros. Os novos ficheiros serão adicionados à lista existente.
+                          </p>
                         </div>
+
+                        {testEndpoint.selectedFiles && testEndpoint.selectedFiles.length > 0 && (
+                          <div>
+                            <Label className="text-sm text-gray-600">Ficheiros Selecionados ({testEndpoint.selectedFiles.length})</Label>
+                            <div className="mt-2 space-y-2">
+                              {testEndpoint.selectedFiles.map((file, index) => (
+                                <div key={`${file.name}-${index}`} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded border">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{file.name}</p>
+                                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB • {file.type}</p>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      placeholder="Nome personalizado"
+                                      className="w-48 text-xs"
+                                      defaultValue={`file_${index + 1}_${file.name.split('.')[0]}`}
+                                      onChange={(e) => {
+                                        const updatedFiles = testEndpoint.selectedFiles || [];
+                                        const fileData = updatedFiles.map((f, i) => ({
+                                          name: f.name,
+                                          size: f.size,
+                                          type: f.type,
+                                          customName: i === index ? e.target.value : `file_${i + 1}_${f.name.split('.')[0]}.${f.name.split('.').pop()}`
+                                        }));
+                                        
+                                        setTestEndpoint({
+                                          ...testEndpoint,
+                                          body: JSON.stringify({
+                                            files: fileData,
+                                            folderPath: testEndpoint.folderPath || null
+                                          }, null, 2)
+                                        });
+                                      }}
+                                    />
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => {
+                                        const updatedFiles = testEndpoint.selectedFiles?.filter((_, i) => i !== index) || [];
+                                        const fileData = updatedFiles.map((f, i) => ({
+                                          name: f.name,
+                                          size: f.size,
+                                          type: f.type,
+                                          customName: `file_${i + 1}_${f.name.split('.')[0]}.${f.name.split('.').pop()}`
+                                        }));
+                                        
+                                        setTestEndpoint({
+                                          ...testEndpoint,
+                                          selectedFiles: updatedFiles,
+                                          body: JSON.stringify({
+                                            files: fileData,
+                                            folderPath: testEndpoint.folderPath || null
+                                          }, null, 2)
+                                        });
+                                      }}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {testEndpoint.selectedFiles.length > 0 && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setTestEndpoint({
+                                      ...testEndpoint,
+                                      selectedFiles: [],
+                                      body: JSON.stringify({
+                                        files: [],
+                                        folderPath: testEndpoint.folderPath || null
+                                      }, null, 2)
+                                    });
+                                  }}
+                                  className="w-full"
+                                >
+                                  Limpar Todos os Ficheiros
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         <div>
                           <Label htmlFor="folder-path" className="text-sm text-gray-600">Pasta de Destino (opcional)</Label>
                           <Input
                             id="folder-path"
                             placeholder="/documents/reports"
                             className="mt-1"
-                            onChange={(e) => setTestEndpoint({
-                              ...testEndpoint,
-                              folderPath: e.target.value
-                            })}
+                            value={testEndpoint.folderPath || ''}
+                            onChange={(e) => {
+                              const newFolderPath = e.target.value;
+                              const fileData = (testEndpoint.selectedFiles || []).map((file, index) => ({
+                                name: file.name,
+                                size: file.size,
+                                type: file.type,
+                                customName: `file_${index + 1}_${file.name.split('.')[0]}.${file.name.split('.').pop()}`
+                              }));
+                              
+                              setTestEndpoint({
+                                ...testEndpoint,
+                                folderPath: newFolderPath,
+                                body: JSON.stringify({
+                                  files: fileData,
+                                  folderPath: newFolderPath || null
+                                }, null, 2)
+                              });
+                            }}
                           />
                         </div>
+                        
                         <div>
-                          <Label className="text-sm text-gray-600">Preview dos Ficheiros</Label>
+                          <Label className="text-sm text-gray-600">Preview dos Dados de Upload</Label>
                           <textarea
                             value={testEndpoint.body}
                             readOnly
-                            className="w-full mt-1 p-2 border rounded-md font-mono text-sm bg-gray-50"
-                            rows={6}
+                            className="w-full mt-1 p-2 border rounded-md font-mono text-sm bg-gray-50 dark:bg-gray-900"
+                            rows={8}
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Este é o preview dos metadados. Os ficheiros reais serão enviados como FormData.
+                          </p>
                         </div>
                       </div>
                     ) : (
