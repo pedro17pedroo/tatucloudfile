@@ -45,13 +45,15 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     endpoint: string;
     body: string;
     headers: { Authorization: string };
+    queryParams: string;
     selectedFile?: File;
     filePath?: string;
   }>({
     method: 'GET',
     endpoint: '/files',
     body: '',
-    headers: { 'Authorization': 'Bearer your_api_key' }
+    headers: { 'Authorization': 'Bearer your_api_key' },
+    queryParams: ''
   });
 
   const [testResponse, setTestResponse] = useState<any>(null);
@@ -184,7 +186,14 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
         requestOptions.body = testEndpoint.body;
       }
 
-      const response = await fetch(baseUrl + testEndpoint.endpoint, requestOptions);
+      // Build URL with query parameters
+      let url = baseUrl + testEndpoint.endpoint;
+      if (testEndpoint.queryParams && testEndpoint.queryParams.trim()) {
+        const params = testEndpoint.queryParams.startsWith('?') ? testEndpoint.queryParams : '?' + testEndpoint.queryParams;
+        url += params;
+      }
+      
+      const response = await fetch(url, requestOptions);
       
       const result = await response.json();
       setTestResponse({
@@ -657,6 +666,19 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                       <option value="/files/search">GET /files/search</option>
                     </select>
                   </div>
+                </div>
+                
+                <div>
+                  <Label>Query Parameters (opcional)</Label>
+                  <Input
+                    value={testEndpoint.queryParams}
+                    onChange={(e) => setTestEndpoint({ ...testEndpoint, queryParams: e.target.value })}
+                    placeholder="q=search_term&type=pdf" 
+                    className="mt-1 font-mono"
+                  />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    Para /files/search: q=termo_pesquisa&type=tipo_ficheiro (ambos opcionais)
+                  </p>
                 </div>
                 
                 <div>

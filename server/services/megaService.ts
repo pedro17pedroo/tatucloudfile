@@ -22,9 +22,7 @@ class MegaService {
   }
 
   private async initializeMegaConnection(): Promise<any> {
-    console.log('[MEGA Debug] Fetching credentials from storage...');
     const credentials = await storage.getMegaCredentials();
-    console.log('[MEGA Debug] Credentials result:', credentials ? 'Found credentials' : 'No credentials');
     if (!credentials) {
       throw new Error('MEGA credentials not configured');
     }

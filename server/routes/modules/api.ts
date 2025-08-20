@@ -140,15 +140,22 @@ apiRouter.get('/files/:id/download', async (req: any, res) => {
 apiRouter.get('/files/search', async (req: any, res) => {
   try {
     const query = req.query.q as string;
-    if (!query) {
-      return res.status(400).json({ error: 'Query parameter "q" is required' });
+    const fileType = req.query.type as string;
+
+    let whereConditions = [eq(files.userId, req.apiUser.userId)];
+    
+    // Add search query condition if provided
+    if (query) {
+      whereConditions.push(like(files.fileName, `%${query}%`));
+    }
+    
+    // Add file type condition if provided
+    if (fileType) {
+      whereConditions.push(like(files.mimeType, `%${fileType}%`));
     }
 
     const searchResults = await db.select().from(files).where(
-      and(
-        eq(files.userId, req.apiUser.userId),
-        like(files.fileName, `%${query}%`)
-      )
+      and(...whereConditions)
     );
 
     res.json({
