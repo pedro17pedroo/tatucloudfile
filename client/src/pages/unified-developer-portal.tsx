@@ -46,6 +46,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     body: string;
     headers: { Authorization: string };
     queryParams: string;
+    pathParams: string;
     selectedFile?: File;
     filePath?: string;
   }>({
@@ -53,7 +54,8 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     endpoint: '/files',
     body: '',
     headers: { 'Authorization': 'Bearer your_api_key' },
-    queryParams: ''
+    queryParams: '',
+    pathParams: ''
   });
 
   const [testResponse, setTestResponse] = useState<any>(null);
@@ -186,8 +188,15 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
         requestOptions.body = testEndpoint.body;
       }
 
-      // Build URL with query parameters
+      // Build URL with path parameters and query parameters
       let url = baseUrl + testEndpoint.endpoint;
+      
+      // Replace path parameters like {id} with actual values
+      if (testEndpoint.pathParams && testEndpoint.pathParams.trim()) {
+        url = url.replace(/\{id\}/g, testEndpoint.pathParams.trim());
+      }
+      
+      // Add query parameters
       if (testEndpoint.queryParams && testEndpoint.queryParams.trim()) {
         const params = testEndpoint.queryParams.startsWith('?') ? testEndpoint.queryParams : '?' + testEndpoint.queryParams;
         url += params;
@@ -658,15 +667,45 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     <Label>Endpoint</Label>
                     <select
                       value={testEndpoint.endpoint}
-                      onChange={(e) => setTestEndpoint({ ...testEndpoint, endpoint: e.target.value })}
+                      onChange={(e) => {
+                        const endpoint = e.target.value;
+                        let method = 'GET';
+                        if (endpoint === '/files/upload') method = 'POST';
+                        else if (endpoint === '/files/{id}') method = 'DELETE';
+                        
+                        setTestEndpoint({ 
+                          ...testEndpoint, 
+                          endpoint: endpoint,
+                          method: method,
+                          pathParams: endpoint.includes('{id}') ? testEndpoint.pathParams : '',
+                          queryParams: endpoint === '/files/search' ? testEndpoint.queryParams : ''
+                        });
+                      }}
                       className="w-full mt-1 p-2 border rounded-md"
                     >
                       <option value="/files">GET /files</option>
                       <option value="/files/upload">POST /files/upload</option>
                       <option value="/files/search">GET /files/search</option>
+                      <option value="/files/{id}/download">GET /files/{id}/download</option>
+                      <option value="/files/{id}">DELETE /files/{id}</option>
                     </select>
                   </div>
                 </div>
+                
+                {(testEndpoint.endpoint.includes('{id}')) && (
+                  <div>
+                    <Label>ID do Ficheiro (obrigatório)</Label>
+                    <Input
+                      value={testEndpoint.pathParams}
+                      onChange={(e) => setTestEndpoint({ ...testEndpoint, pathParams: e.target.value })}
+                      placeholder="9c24a13a-c8c6-428b-99ef-3dbf1061fee7" 
+                      className="mt-1 font-mono"
+                    />
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      ID do ficheiro (obtenha da listagem de ficheiros)
+                    </p>
+                  </div>
+                )}
                 
                 <div>
                   <Label>Query Parameters (opcional)</Label>
