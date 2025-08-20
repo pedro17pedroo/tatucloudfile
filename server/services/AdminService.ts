@@ -917,4 +917,53 @@ export class AdminService {
       throw error;
     }
   }
+
+  // Create API key
+  static async createApiKey(data: { name: string; userId: string; description?: string }) {
+    try {
+      const { nanoid } = await import('nanoid');
+      const keyValue = `mega_${nanoid(32)}`;
+      const keyHash = await bcrypt.hash(keyValue, 10);
+
+      const [newKey] = await db.insert(apiKeys).values({
+        name: data.name,
+        userId: data.userId,
+        keyHash,
+        description: data.description,
+        isActive: true
+      }).returning();
+
+      return { 
+        ...newKey, 
+        key: keyValue, // Return the actual key only once during creation
+        message: 'API key created successfully' 
+      };
+    } catch (error) {
+      console.error('Error creating API key:', error);
+      throw error;
+    }
+  }
+
+  // Toggle API key status
+  static async toggleApiKey(keyId: string, isActive: boolean) {
+    try {
+      const [updatedKey] = await db
+        .update(apiKeys)
+        .set({ isActive })
+        .where(eq(apiKeys.id, keyId))
+        .returning();
+
+      if (!updatedKey) {
+        throw new Error('API key not found');
+      }
+
+      return { 
+        ...updatedKey, 
+        message: `API key ${isActive ? 'activated' : 'deactivated'} successfully` 
+      };
+    } catch (error) {
+      console.error('Error toggling API key:', error);
+      throw error;
+    }
+  }
 }

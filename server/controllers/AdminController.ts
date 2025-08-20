@@ -345,6 +345,38 @@ export class AdminController {
     }
   }
 
+  static async createApiKey(req: Request, res: Response) {
+    try {
+      const validatedData = z.object({
+        name: z.string().min(1),
+        userId: z.string().min(1),
+        description: z.string().optional()
+      }).parse(req.body);
+
+      const result = await AdminService.createApiKey(validatedData);
+      res.json(result);
+    } catch (error) {
+      console.error('Create API key error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid input data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create API key' });
+    }
+  }
+
+  static async toggleApiKey(req: Request, res: Response) {
+    try {
+      const { keyId } = req.params;
+      const { isActive } = req.body;
+      
+      const result = await AdminService.toggleApiKey(keyId, isActive);
+      res.json(result);
+    } catch (error) {
+      console.error('Toggle API key error:', error);
+      res.status(500).json({ message: 'Failed to toggle API key' });
+    }
+  }
+
   static async revokeApiKey(req: Request, res: Response) {
     try {
       const { keyId } = req.params;

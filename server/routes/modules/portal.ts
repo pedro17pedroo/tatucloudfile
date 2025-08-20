@@ -84,8 +84,10 @@ portalRouter.delete('/admin/payment-methods/:methodId', AdminController.deletePa
 
 // API Management
 portalRouter.get('/admin/api-keys', AdminController.getApiKeys);
-portalRouter.get('/admin/api-usage', AdminController.getApiUsage);
+portalRouter.post('/admin/api-keys', AdminController.createApiKey);
+portalRouter.patch('/admin/api-keys/:keyId/toggle', AdminController.toggleApiKey);
 portalRouter.delete('/admin/api-keys/:keyId', AdminController.revokeApiKey);
+portalRouter.get('/admin/api-usage', AdminController.getApiUsage);
 
 // MEGA Management
 portalRouter.get('/admin/mega-credentials', AdminController.getMegaCredentials);

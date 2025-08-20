@@ -189,9 +189,62 @@ export function AdminPanelWithSidebar() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showEditUser, setShowEditUser] = useState(false);
+  const [apiKeyForm, setApiKeyForm] = useState({
+    name: '',
+    userId: '',
+    description: ''
+  });
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [createdApiKey, setCreatedApiKey] = useState<{ key: string; name: string } | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // API Key mutations
+  const createApiKeyMutation = useMutation({
+    mutationFn: async (data: { name: string; userId: string; description?: string }) => {
+      const response = await apiRequest('/api/portal/admin/api-keys', 'POST', data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/api-keys'] });
+      toast({ title: 'Chave API criada com sucesso!' });
+      setCreatedApiKey({ key: data.key, name: data.name });
+      setApiKeyForm({ name: '', userId: '', description: '' });
+      setShowApiKeyDialog(false);
+    },
+    onError: () => {
+      toast({ title: 'Erro ao criar chave API', variant: 'destructive' });
+    }
+  });
+
+  const toggleApiKeyMutation = useMutation({
+    mutationFn: async ({ keyId, isActive }: { keyId: string; isActive: boolean }) => {
+      const response = await apiRequest(`/api/portal/admin/api-keys/${keyId}/toggle`, 'PATCH', { isActive });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/api-keys'] });
+      toast({ title: 'Estado da chave API atualizado!' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar chave API', variant: 'destructive' });
+    }
+  });
+
+  const revokeApiKeyMutation = useMutation({
+    mutationFn: async (keyId: string) => {
+      const response = await apiRequest(`/api/portal/admin/api-keys/${keyId}`, 'DELETE');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/api-keys'] });
+      toast({ title: 'Chave API revogada com sucesso!' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao revogar chave API', variant: 'destructive' });
+    }
+  });
 
   // Queries
   const { data: stats, isLoading: statsLoading } = useQuery<SystemStats>({
@@ -995,61 +1048,391 @@ export function AdminPanelWithSidebar() {
 
       case 'api':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestão de Chaves API</CardTitle>
-              <CardDescription>
-                Monitorizar e gerir chaves API dos utilizadores
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {apiKeysLoading ? (
-                <div className="text-center py-8">A carregar chaves API...</div>
-              ) : apiKeysData?.apiKeys?.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Nenhuma chave API registada
+          <div className="space-y-6">
+            {/* API Keys Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center">
+                  <Key className="w-8 h-8 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">Total de Chaves</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {apiKeysData?.total || 0}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Utilizador</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Último Uso</TableHead>
-                      <TableHead>Criada</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {apiKeysData?.apiKeys?.map((apiKey) => (
-                      <TableRow key={apiKey.id}>
-                        <TableCell>
-                          <span className="font-medium">{apiKey.name}</span>
-                        </TableCell>
-                        <TableCell>{apiKey.user?.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={apiKey.isActive ? "default" : "secondary"}>
-                            {apiKey.isActive ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Nunca'}
-                        </TableCell>
-                        <TableCell>{formatDate(apiKey.createdAt)}</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" className="text-red-600">
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Revogar
+              </div>
+              
+              <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center">
+                  <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-green-600 font-medium">Chaves Ativas</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {apiKeysData?.apiKeys?.filter(k => k.isActive).length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="flex items-center">
+                  <Activity className="w-8 h-8 text-orange-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-orange-600 font-medium">Usadas Hoje</p>
+                    <p className="text-2xl font-bold text-orange-700">
+                      {apiKeysData?.apiKeys?.filter(k => k.lastUsed && new Date(k.lastUsed).toDateString() === new Date().toDateString()).length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center">
+                  <BarChart3 className="w-8 h-8 text-purple-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-purple-600 font-medium">Chamadas Hoje</p>
+                    <p className="text-2xl font-bold text-purple-700">
+                      {stats?.apiCallsToday || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* API Keys Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Gestão de Chaves API</CardTitle>
+                    <CardDescription>
+                      Monitorizar e gerir chaves API dos utilizadores
+                    </CardDescription>
+                  </div>
+                  <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        data-testid="button-create-api-key"
+                        onClick={() => setShowApiKeyDialog(true)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Criar Chave API
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Criar Nova Chave API</DialogTitle>
+                        <DialogDescription>
+                          Criar uma chave API para um utilizador específico
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="api-key-name">Nome da Chave</Label>
+                          <Input 
+                            id="api-key-name" 
+                            placeholder="Ex: Integração Mobile" 
+                            data-testid="input-api-key-name"
+                            value={apiKeyForm.name}
+                            onChange={(e) => setApiKeyForm(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="api-key-user">Utilizador</Label>
+                          <Select 
+                            value={apiKeyForm.userId}
+                            onValueChange={(value) => setApiKeyForm(prev => ({ ...prev, userId: value }))}
+                          >
+                            <SelectTrigger data-testid="select-api-key-user">
+                              <SelectValue placeholder="Selecionar utilizador" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {usersData?.users?.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.email} ({user.plan?.name || 'Sem plano'})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="api-key-description">Descrição (Opcional)</Label>
+                          <Textarea 
+                            id="api-key-description" 
+                            placeholder="Descrição da finalidade desta chave API..."
+                            rows={3}
+                            data-testid="textarea-api-key-description"
+                            value={apiKeyForm.description}
+                            onChange={(e) => setApiKeyForm(prev => ({ ...prev, description: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-4">
+                        <Button 
+                          variant="outline" 
+                          data-testid="button-cancel-api-key"
+                          onClick={() => {
+                            setShowApiKeyDialog(false);
+                            setApiKeyForm({ name: '', userId: '', description: '' });
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          data-testid="button-create-api-key-confirm"
+                          disabled={createApiKeyMutation.isPending || !apiKeyForm.name || !apiKeyForm.userId}
+                          onClick={() => {
+                            if (apiKeyForm.name && apiKeyForm.userId) {
+                              createApiKeyMutation.mutate({
+                                name: apiKeyForm.name,
+                                userId: apiKeyForm.userId,
+                                description: apiKeyForm.description || undefined
+                              });
+                            }
+                          }}
+                        >
+                          {createApiKeyMutation.isPending ? 'Criando...' : 'Criar Chave'}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {apiKeysLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-2/3"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : apiKeysData?.apiKeys?.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Key className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      Nenhuma chave API registada
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Crie chaves API para permitir que utilizadores acedam aos serviços programaticamente.
+                    </p>
+                    <Button 
+                      data-testid="button-create-first-api-key"
+                      onClick={() => setShowApiKeyDialog(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Criar Primeira Chave API
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <Input 
+                          placeholder="Pesquisar chaves API..." 
+                          className="w-80"
+                          data-testid="input-search-api-keys"
+                        />
+                        <Select defaultValue="all">
+                          <SelectTrigger className="w-40" data-testid="select-filter-api-keys">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            <SelectItem value="active">Ativas</SelectItem>
+                            <SelectItem value="inactive">Inativas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button variant="outline" size="sm" data-testid="button-refresh-api-keys">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Atualizar
+                      </Button>
+                    </div>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Utilizador</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Último Uso</TableHead>
+                          <TableHead>Criada</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {apiKeysData?.apiKeys?.map((apiKey) => (
+                          <TableRow key={apiKey.id} data-testid={`api-key-row-${apiKey.id}`}>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                                  <Key className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div>
+                                  <span className="font-medium" data-testid={`api-key-name-${apiKey.id}`}>{apiKey.name}</span>
+                                  <p className="text-xs text-gray-500">
+                                    {apiKey.keyHash ? `***${apiKey.keyHash.slice(-8)}` : 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <span className="font-medium">{apiKey.user?.email || 'Utilizador removido'}</span>
+                                {apiKey.user?.plan && (
+                                  <Badge variant="outline" className="ml-2 text-xs">
+                                    {apiKey.user.plan.name}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={apiKey.isActive ? "default" : "secondary"}
+                                data-testid={`api-key-status-${apiKey.id}`}
+                              >
+                                {apiKey.isActive ? 'Ativa' : 'Inativa'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span data-testid={`api-key-last-used-${apiKey.id}`}>
+                                {apiKey.lastUsed ? formatDate(apiKey.lastUsed) : 'Nunca'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span data-testid={`api-key-created-${apiKey.id}`}>
+                                {formatDate(apiKey.createdAt)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  data-testid={`button-view-api-key-${apiKey.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  Ver
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className={apiKey.isActive ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                                  data-testid={`button-toggle-api-key-${apiKey.id}`}
+                                  disabled={toggleApiKeyMutation.isPending}
+                                  onClick={() => toggleApiKeyMutation.mutate({ keyId: apiKey.id, isActive: !apiKey.isActive })}
+                                >
+                                  {apiKey.isActive ? (
+                                    <>
+                                      <XCircle className="w-4 h-4 mr-1" />
+                                      Desativar
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      Ativar
+                                    </>
+                                  )}
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-red-600 hover:text-red-700"
+                                  data-testid={`button-delete-api-key-${apiKey.id}`}
+                                  disabled={revokeApiKeyMutation.isPending}
+                                  onClick={() => {
+                                    if (confirm(`Tem a certeza que quer revogar a chave "${apiKey.name}"? Esta ação não pode ser desfeita.`)) {
+                                      revokeApiKeyMutation.mutate(apiKey.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-1" />
+                                  Revogar
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )) || []}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Success Dialog for Created API Key */}
+            <Dialog open={!!createdApiKey} onOpenChange={() => setCreatedApiKey(null)}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <span>Chave API Criada com Sucesso!</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    A sua nova chave API foi gerada. Esta é a única vez que poderá visualizar a chave completa.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {createdApiKey && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">Nome da Chave</Label>
+                      <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                        <span className="font-mono text-sm">{createdApiKey.name}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">Chave API</Label>
+                      <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-sm break-all">{createdApiKey.key}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(createdApiKey.key);
+                              toast({ title: 'Chave copiada para área de transferência!' });
+                            }}
+                            data-testid="button-copy-api-key"
+                          >
+                            <CheckCircle className="w-4 h-4" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    )) || []}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <div className="flex">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm">
+                          <p className="text-amber-800 dark:text-amber-200 font-medium">Importante!</p>
+                          <p className="text-amber-700 dark:text-amber-300 mt-1">
+                            Guarde esta chave em local seguro. Por motivos de segurança, não será possível visualizá-la novamente.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => setCreatedApiKey(null)}
+                    data-testid="button-close-api-key-success"
+                  >
+                    Entendi
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         );
 
       case 'mega':
