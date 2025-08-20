@@ -4,10 +4,10 @@ import {
   DeveloperApplication, ApiKey, DeveloperApiSettings,
   InsertDeveloperApplication, InsertDeveloperApiSettings
 } from '@shared/schema';
-import { eq, desc, and, count } from 'drizzle-orm';
+import { eq, desc, and, count, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcrypt';
-import { TemporaryApiKeyStore } from '../utils/temporaryApiKeys';
+import { TemporaryApiKeyStore } from '../utils/temporaryApiKeyStore';
 
 export class DeveloperService {
   // Submit new developer application and create trial API key immediately
@@ -104,11 +104,17 @@ export class DeveloperService {
         return [];
       }
 
-      // Get API keys for user's applications
+      // Get API keys for all user applications
+      const applicationIds = userApplications.map(app => app.id);
       const keys = await db
         .select()
         .from(apiKeys)
-        .where(eq(apiKeys.applicationId, userApplications[0].id))
+        .where(
+          and(
+            eq(apiKeys.userId, userId),
+            applicationIds.length > 0 ? or(...applicationIds.map(id => eq(apiKeys.applicationId, id))) : eq(apiKeys.applicationId, '')
+          )
+        )
         .orderBy(desc(apiKeys.createdAt));
 
       // Try to get the plain text key for recently created keys
@@ -198,7 +204,7 @@ export class DeveloperService {
     try {
       const offset = (page - 1) * limit;
       
-      let query = db
+      const baseQuery = db
         .select({
           id: developerApplications.id,
           userId: developerApplications.userId,
@@ -220,9 +226,9 @@ export class DeveloperService {
         .from(developerApplications)
         .leftJoin(users, eq(developerApplications.userId, users.id));
 
-      if (status) {
-        query = query.where(eq(developerApplications.status, status));
-      }
+      const query = status 
+        ? baseQuery.where(eq(developerApplications.status, status))
+        : baseQuery;
 
       const applications = await query
         .orderBy(desc(developerApplications.createdAt))
@@ -309,9 +315,12 @@ export class DeveloperService {
 
       await db.insert(apiKeys).values({
         userId,
+        applicationId,
+        name: `${systemName} API Key`,
+        systemName,
         keyHash,
-        status: 'trial',
-        expiresAt: trialExpiresAt,
+        isTrial: true,
+        trialExpiresAt: trialExpiresAt,
       });
 
       console.log(`[Developer API] Created trial API key for ${systemName}: ${apiKey}`);
@@ -384,7 +393,7 @@ export class DeveloperService {
         isValid: true, 
         apiKey, 
         isExpired: false,
-        requestsRemaining: requestLimit // Simplified - in real implementation, track actual usage
+        requestsRemaining: requestLimit ?? undefined // Simplified - in real implementation, track actual usage
       };
     } catch (error) {
       console.error('Error validating API key:', error);
