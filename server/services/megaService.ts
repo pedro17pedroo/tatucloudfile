@@ -268,9 +268,16 @@ class MegaService {
 
       // Upload all files
       const results = [];
-      for (const upload of uploads) {
+      for (let i = 0; i < uploads.length; i++) {
+        const upload = uploads[i];
         const fileName = upload.customName || upload.originalName;
+        
+        console.log(`[MEGA Upload] File ${i}: ${upload.originalName} -> ${fileName}`);
+        console.log(`[MEGA Upload] Buffer size: ${upload.buffer.length} bytes`);
+        
         const file = await targetFolder.upload(fileName, upload.buffer).complete;
+        
+        console.log(`[MEGA Upload] Uploaded successfully: ${file.name}, Size: ${file.size}`);
         
         results.push({
           id: file.nodeId,

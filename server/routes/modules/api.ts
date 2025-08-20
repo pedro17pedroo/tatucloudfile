@@ -277,14 +277,22 @@ apiRouter.post('/files/upload-multiple', upload.array('files'), async (req: any,
     const folderPath = req.body.folderPath || null;
     const customNames = req.body.customNames ? JSON.parse(req.body.customNames) : {};
 
+    console.log('[Multiple Upload] Received files:', (req.files as any[]).map(f => f.originalname));
+    console.log('[Multiple Upload] Custom names received:', customNames);
+
     // Prepare upload data
-    const uploads = (req.files as any[]).map((file, index) => ({
-      buffer: file.buffer,
-      originalName: file.originalname,
-      customName: customNames[index] || null,
-      mimeType: file.mimetype,
-      size: file.size
-    }));
+    const uploads = (req.files as any[]).map((file, index) => {
+      const customName = customNames[index] || null;
+      console.log(`[Multiple Upload] File ${index}: ${file.originalname} -> Custom: ${customName || 'none'}`);
+      
+      return {
+        buffer: file.buffer,
+        originalName: file.originalname,
+        customName: customName,
+        mimeType: file.mimetype,
+        size: file.size
+      };
+    });
 
     // Upload to MEGA
     const megaResults = await megaService.uploadMultipleFiles(uploads, folderPath);
