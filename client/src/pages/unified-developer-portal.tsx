@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Code, Key, Clock, CheckCircle, XCircle, AlertTriangle,
   FileText, Activity, Settings, Play, Copy, BookOpen,
-  Upload, Download, Search, Trash2, Send, Eye
+  Upload, Download, Search, Trash2, Send, Eye, X
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Navigation } from '@/components/navigation';
