@@ -104,11 +104,14 @@ export async function seedDatabase() {
     console.log('🔑 Creating sample MEGA credentials...');
     const existingCredentials = await db.select().from(megaCredentials);
     if (existingCredentials.length === 0) {
+      const { PasswordEncryption } = await import('../utils/encryption');
       const megaPassword = 'mega-password-placeholder';
       const megaPasswordHash = await bcrypt.hash(megaPassword, 10);
+      const encryptedPassword = PasswordEncryption.encrypt(megaPassword);
+      
       await db.insert(megaCredentials).values({
         email: 'your-mega-email@example.com',
-        password: megaPassword,
+        encryptedPassword: encryptedPassword,
         passwordHash: megaPasswordHash,
         isActive: false, // Set to false by default - admin needs to configure real credentials
       });

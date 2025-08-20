@@ -29,9 +29,12 @@ class MegaService {
 
     try {
       console.log('[MEGA] Attempting connection with email:', credentials.email);
+      const { PasswordEncryption } = await import('../utils/encryption');
+      const decryptedPassword = PasswordEncryption.decrypt(credentials.encryptedPassword);
+      
       const megaStorage = await new Storage({
         email: credentials.email,
-        password: credentials.password, // Use the plain text password
+        password: decryptedPassword, // Use the decrypted password
       }).ready;
 
       console.log('[MEGA] Connection successful');

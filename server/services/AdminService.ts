@@ -410,18 +410,22 @@ export class AdminService {
 
   static async updateMegaCredentials(email: string, password: string): Promise<MegaCredentials> {
     try {
+      const { PasswordEncryption } = await import('../utils/encryption');
       const passwordHash = await bcrypt.hash(password, 10);
+      const encryptedPassword = PasswordEncryption.encrypt(password);
       
       // Deactivate existing credentials
       await db.update(megaCredentials).set({ isActive: false });
       
-      // Create new credentials
+      // Create new credentials with encrypted password
       const result = await db.insert(megaCredentials).values({
         email,
         passwordHash,
-        password, // Store plain password for MEGA API access
+        encryptedPassword, // Store encrypted password for MEGA API access
         isActive: true
       }).returning();
+
+      console.log('[MEGA Security] Password encrypted and stored securely');
 
       // Automatically update account status after successful credential save
       setTimeout(async () => {
@@ -456,8 +460,11 @@ export class AdminService {
       const credentials = await this.getMegaCredentials();
       if (!credentials) return null;
 
+      const { PasswordEncryption } = await import('../utils/encryption');
+      const decryptedPassword = PasswordEncryption.decrypt(credentials.encryptedPassword);
+
       console.log('[MEGA Status] Connecting to get account info...');
-      const storage = new Storage({ email: credentials.email, password: credentials.password });
+      const storage = new Storage({ email: credentials.email, password: decryptedPassword });
       await storage.ready;
 
       console.log('[MEGA Status] Connected, retrieving account information...');
