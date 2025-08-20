@@ -285,8 +285,17 @@ export function AdminPanelWithSidebar() {
 
   const { data: megaAccountStatus, refetch: refetchMegaStatus } = useQuery({
     queryKey: ['/api/portal/admin/mega-account-status'],
-    queryFn: () => apiRequest('/api/portal/admin/mega-account-status').then(r => r.json()),
+    queryFn: async () => {
+      const response = await apiRequest('/api/portal/admin/mega-account-status');
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      console.log('[MEGA Status Frontend] Received data:', data);
+      return data;
+    },
     enabled: activeTab === 'mega',
+    retry: false,
   });
 
   // MEGA mutations
@@ -1506,7 +1515,7 @@ export function AdminPanelWithSidebar() {
       case 'mega':
         return (
           <div className="space-y-6">
-            {/* MEGA Account Status */}
+            {/* MEGA Account Status - Always show if status exists */}
             {megaAccountStatus && (
               <Card>
                 <CardHeader>
@@ -1538,21 +1547,21 @@ export function AdminPanelWithSidebar() {
                     
                     <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                       <p className="text-lg font-bold text-green-700">
-                        {megaAccountStatus.totalSpace ? formatBytes(megaAccountStatus.totalSpace) : 'N/A'}
+                        {megaAccountStatus.totalSpace ? formatBytes(parseInt(megaAccountStatus.totalSpace)) : 'N/A'}
                       </p>
                       <p className="text-xs text-green-600 mt-1">Espaço Total</p>
                     </div>
                     
                     <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
                       <p className="text-lg font-bold text-orange-700">
-                        {megaAccountStatus.usedSpace ? formatBytes(megaAccountStatus.usedSpace) : 'N/A'}
+                        {megaAccountStatus.usedSpace ? formatBytes(parseInt(megaAccountStatus.usedSpace)) : 'N/A'}
                       </p>
                       <p className="text-xs text-orange-600 mt-1">Espaço Usado</p>
                     </div>
                     
                     <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
                       <p className="text-lg font-bold text-purple-700">
-                        {megaAccountStatus.availableSpace ? formatBytes(megaAccountStatus.availableSpace) : 'N/A'}
+                        {megaAccountStatus.availableSpace ? formatBytes(parseInt(megaAccountStatus.availableSpace)) : 'N/A'}
                       </p>
                       <p className="text-xs text-purple-600 mt-1">Espaço Disponível</p>
                     </div>
