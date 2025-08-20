@@ -48,7 +48,9 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     queryParams: string;
     pathParams: string;
     selectedFile?: File;
+    selectedFiles?: File[];
     filePath?: string;
+    folderPath?: string;
   }>({
     method: 'GET',
     endpoint: '/files',
@@ -172,11 +174,21 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
       };
 
       // Handle file upload differently
-      if (testEndpoint.endpoint === '/files/upload' && (testEndpoint as any).selectedFile) {
+      if (testEndpoint.endpoint === '/files/upload' && testEndpoint.selectedFile) {
         const formData = new FormData();
-        formData.append('file', (testEndpoint as any).selectedFile);
-        if ((testEndpoint as any).filePath) {
-          formData.append('path', (testEndpoint as any).filePath);
+        formData.append('file', testEndpoint.selectedFile);
+        if (testEndpoint.filePath) {
+          formData.append('path', testEndpoint.filePath);
+        }
+        requestOptions.body = formData;
+        // Remove Content-Type header for FormData (browser will set it automatically)
+      } else if (testEndpoint.endpoint === '/files/upload-multiple' && testEndpoint.selectedFiles) {
+        const formData = new FormData();
+        testEndpoint.selectedFiles.forEach(file => {
+          formData.append('files', file);
+        });
+        if (testEndpoint.folderPath) {
+          formData.append('folderPath', testEndpoint.folderPath);
         }
         requestOptions.body = formData;
         // Remove Content-Type header for FormData (browser will set it automatically)
@@ -856,6 +868,58 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                             readOnly
                             className="w-full mt-1 p-2 border rounded-md font-mono text-sm bg-gray-50"
                             rows={3}
+                          />
+                        </div>
+                      </div>
+                    ) : testEndpoint.endpoint === '/files/upload-multiple' ? (
+                      <div className="space-y-3 mt-1">
+                        <div>
+                          <Label htmlFor="multiple-file-upload" className="text-sm text-gray-600">Ficheiros para Upload (múltiplos)</Label>
+                          <input
+                            id="multiple-file-upload"
+                            type="file"
+                            multiple
+                            className="w-full mt-1 p-2 border rounded-md"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                const files = Array.from(e.target.files);
+                                const fileData = files.map((file, index) => ({
+                                  name: file.name,
+                                  size: file.size,
+                                  type: file.type,
+                                  customName: `file_${index + 1}_${file.name}`
+                                }));
+                                setTestEndpoint({
+                                  ...testEndpoint,
+                                  body: JSON.stringify({
+                                    files: fileData,
+                                    folderPath: testEndpoint.folderPath || null
+                                  }, null, 2),
+                                  selectedFiles: files
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="folder-path" className="text-sm text-gray-600">Pasta de Destino (opcional)</Label>
+                          <Input
+                            id="folder-path"
+                            placeholder="/documents/reports"
+                            className="mt-1"
+                            onChange={(e) => setTestEndpoint({
+                              ...testEndpoint,
+                              folderPath: e.target.value
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm text-gray-600">Preview dos Ficheiros</Label>
+                          <textarea
+                            value={testEndpoint.body}
+                            readOnly
+                            className="w-full mt-1 p-2 border rounded-md font-mono text-sm bg-gray-50"
+                            rows={6}
                           />
                         </div>
                       </div>
