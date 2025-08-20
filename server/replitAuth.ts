@@ -47,7 +47,7 @@ export function getSession() {
   }
   
   return session({
-    secret: process.env.SESSION_SECRET || 'mega-file-manager-default-secret-key-' + Math.random().toString(36),
+    secret: process.env.SESSION_SECRET || 'mega-file-manager-fixed-secret-key-v1-2024-default',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
