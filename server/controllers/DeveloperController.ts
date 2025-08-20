@@ -77,6 +77,30 @@ export class DeveloperController {
     }
   }
 
+  // Get API key in plain text (only for recently created keys)
+  static async getApiKeyPlainText(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.claims?.sub || (req as any).currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Utilizador não autenticado' });
+      }
+
+      const { keyId } = req.params;
+      const plainTextKey = await DeveloperService.getApiKeyPlainText(keyId, userId);
+
+      if (!plainTextKey) {
+        return res.status(404).json({ 
+          message: 'Chave API não encontrada ou não disponível. As chaves só ficam disponíveis por 24 horas após criação.' 
+        });
+      }
+
+      res.json({ key: plainTextKey });
+    } catch (error) {
+      console.error('Get API key plain text error:', error);
+      res.status(500).json({ message: 'Erro ao obter chave API' });
+    }
+  }
+
   // Get developer API settings (public)
   static async getApiSettings(req: Request, res: Response) {
     try {

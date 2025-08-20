@@ -7,6 +7,7 @@ import {
 import { eq, desc, and, count } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcrypt';
+import { TemporaryApiKeyStore } from '../utils/temporaryApiKeys';
 
 export class DeveloperService {
   // Submit new developer application and create trial API key immediately
@@ -49,7 +50,7 @@ export class DeveloperService {
       const hashedKey = await bcrypt.hash(apiKey, 10);
 
       // Create API key with trial period
-      await db.insert(apiKeys).values({
+      const apiKeyResult = await db.insert(apiKeys).values({
         userId,
         name: `${applicationData.systemName} - API Key`,
         keyHash: hashedKey,
@@ -58,7 +59,10 @@ export class DeveloperService {
         isActive: true,
         isTrial: true,
         trialExpiresAt,
-      });
+      }).returning();
+
+      // Store the plain text API key temporarily so user can access it
+      TemporaryApiKeyStore.store(apiKeyResult[0].id, apiKey, userId);
 
       return {
         application: applicationResult[0],
@@ -88,7 +92,7 @@ export class DeveloperService {
   }
 
   // Get user's API keys via applications
-  static async getUserApiKeys(userId: string): Promise<ApiKey[]> {
+  static async getUserApiKeys(userId: string): Promise<(ApiKey & { plainTextKey?: string })[]> {
     try {
       // Get user's applications first
       const userApplications = await db
@@ -107,10 +111,55 @@ export class DeveloperService {
         .where(eq(apiKeys.applicationId, userApplications[0].id))
         .orderBy(desc(apiKeys.createdAt));
 
-      return keys;
+      // Try to get the plain text key for recently created keys
+      const keysWithPlainText = keys.map(key => {
+        const plainTextKey = TemporaryApiKeyStore.retrieve(key.id, userId);
+        return {
+          ...key,
+          plainTextKey: plainTextKey || undefined
+        };
+      });
+
+      return keysWithPlainText;
     } catch (error) {
       console.error('Error getting user API keys:', error);
       throw error;
+    }
+  }
+
+  // Get a specific API key in plain text (if available in temporary storage)
+  static async getApiKeyPlainText(keyId: string, userId: string): Promise<string | null> {
+    try {
+      // First verify the key belongs to the user
+      const userApplications = await db
+        .select({ id: developerApplications.id })
+        .from(developerApplications)
+        .where(eq(developerApplications.userId, userId));
+
+      if (userApplications.length === 0) {
+        return null;
+      }
+
+      const keyExists = await db
+        .select()
+        .from(apiKeys)
+        .where(
+          and(
+            eq(apiKeys.id, keyId),
+            eq(apiKeys.applicationId, userApplications[0].id)
+          )
+        )
+        .limit(1);
+
+      if (keyExists.length === 0) {
+        return null;
+      }
+
+      // Get the plain text key from temporary storage
+      return TemporaryApiKeyStore.retrieve(keyId, userId);
+    } catch (error) {
+      console.error('Error getting API key plain text:', error);
+      return null;
     }
   }
 

@@ -11,6 +11,7 @@ developerRouter.use(authenticateUser);
 developerRouter.post('/applications', DeveloperController.submitApplication);
 developerRouter.get('/applications', DeveloperController.getUserApplications);
 developerRouter.get('/api-keys', DeveloperController.getUserApiKeys);
+developerRouter.get('/api-keys/:keyId/plain-text', DeveloperController.getApiKeyPlainText);
 developerRouter.get('/settings', DeveloperController.getApiSettings);
 
 export { developerRouter };

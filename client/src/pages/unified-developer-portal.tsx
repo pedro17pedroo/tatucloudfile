@@ -58,7 +58,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
   });
 
   const { data: apiKeys, isLoading: apiKeysLoading } = useQuery<{
-    apiKeys: ApiKey[];
+    apiKeys: (ApiKey & { plainTextKey?: string })[];
   }>({
     queryKey: ['/api/portal/developer/api-keys'],
   });
@@ -449,12 +449,20 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     <Label>Autenticação</Label>
                     <div className="flex items-center space-x-2 mt-1">
                       <code className="flex-1 bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm">
-                        Authorization: Bearer {hasActiveApiKey ? 'sua_chave_api_aqui' : 'your_api_key'}
+                        Authorization: Bearer {
+                          hasActiveApiKey && apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) 
+                            ? apiKeys.apiKeys.find(key => key.isActive && key.plainTextKey)?.plainTextKey
+                            : hasActiveApiKey ? 'sua_chave_api_aqui' : 'your_api_key'
+                        }
                       </code>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        onClick={() => copyToClipboard('Authorization: Bearer sua_chave_api_aqui')}
+                        onClick={() => {
+                          const activeKeyWithText = apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey);
+                          const keyText = activeKeyWithText?.plainTextKey || 'sua_chave_api_aqui';
+                          copyToClipboard(`Authorization: Bearer ${keyText}`);
+                        }}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
@@ -487,6 +495,24 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               Sistema: {key.systemName}
                             </p>
+                            {key.plainTextKey && (
+                              <div className="mt-2">
+                                <Label className="text-xs font-medium">Chave API:</Label>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <code className="flex-1 bg-gray-50 dark:bg-gray-900 p-2 rounded text-xs font-mono break-all">
+                                    {key.plainTextKey}
+                                  </code>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => copyToClipboard(key.plainTextKey!)}
+                                    data-testid={`copy-api-key-${key.id}`}
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                             <p className="text-xs text-gray-500">
                               Criada: {key.createdAt ? new Date(key.createdAt).toLocaleDateString('pt-PT') : 'Desconhecida'}
                               {key.isTrial && key.trialExpiresAt && ` • Expira: ${new Date(key.trialExpiresAt).toLocaleDateString('pt-PT')}`}
@@ -562,9 +588,29 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     placeholder="Bearer your_api_key_here"
                     className="mt-1 font-mono"
                   />
-                  {hasActiveApiKey && (
+                  {hasActiveApiKey && apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="mt-2"
+                      onClick={() => {
+                        const activeKey = apiKeys.apiKeys.find(key => key.isActive && key.plainTextKey);
+                        if (activeKey?.plainTextKey) {
+                          setTestEndpoint({
+                            ...testEndpoint,
+                            headers: { ...testEndpoint.headers, Authorization: `Bearer ${activeKey.plainTextKey}` }
+                          });
+                          toast({ title: 'Chave API aplicada', description: 'A sua chave API foi aplicada no campo de autorização.' });
+                        }
+                      }}
+                      data-testid="use-active-api-key"
+                    >
+                      Usar Chave API Ativa
+                    </Button>
+                  )}
+                  {hasActiveApiKey && !apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      Substitua "your_api_key_here" pela sua chave API ativa
+                      Substitua "your_api_key_here" pela sua chave API ativa das Credenciais
                     </p>
                   )}
                 </div>
