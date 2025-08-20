@@ -136,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount module routes
   app.use('/api/auth', authRouter);
-  app.use('/api/dev', developerRouter);
+  app.use('/api/portal/developer', developerRouter);
   app.use('/api/portal', portalRouter);
 
   // API documentation endpoint

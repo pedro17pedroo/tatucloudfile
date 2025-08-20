@@ -475,6 +475,15 @@ export function AdminPanelWithSidebar() {
       ]
     },
     {
+      title: "Portal de Desenvolvedores",
+      items: [
+        { id: 'dev-applications', label: 'Aplicações', icon: FileText, description: 'Aplicações de acesso à API' },
+        { id: 'dev-settings', label: 'Configurações API', icon: Settings, description: 'Período de teste e preços' },
+        { id: 'api-keys', label: 'Chaves API', icon: Key, description: 'Gerir chaves API dos desenvolvedores' },
+        { id: 'api-usage', label: 'Uso da API', icon: Activity, description: 'Monitorizar uso das APIs' }
+      ]
+    },
+    {
       title: "Desenvolvimento & API",
       items: [
         { id: 'api', label: 'Chaves API', icon: Key, description: 'Gerir chaves de API' },
@@ -1509,6 +1518,107 @@ export function AdminPanelWithSidebar() {
                 </div>
               </DialogContent>
             </Dialog>
+          </div>
+        );
+
+      case 'dev-applications':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium">Aplicações de Desenvolvedores</h3>
+              <p className="text-sm text-gray-500">Gerir solicitações de acesso à API</p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Aplicações Pendentes</CardTitle>
+                <CardDescription>
+                  Solicitações de acesso que requerem aprovação
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Placeholder para aplicações - será implementado após queries funcionarem */}
+                  <div className="text-center p-8 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p>Nenhuma aplicação pendente</p>
+                    <p className="text-sm">As solicitações de acesso à API aparecerão aqui</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'dev-settings':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium">Configurações da API</h3>
+              <p className="text-sm text-gray-500">Configurar períodos de teste, preços e limites</p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações do Portal de Desenvolvedores</CardTitle>
+                <CardDescription>
+                  Definir duração de teste, preços e limites de requests
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Duração do Teste (Dias)</Label>
+                    <Input 
+                      type="number" 
+                      defaultValue="14"
+                      placeholder="14"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Quantos dias de acesso grátis para novos desenvolvedores</p>
+                  </div>
+                  <div>
+                    <Label>Requests por Dia (Teste)</Label>
+                    <Input 
+                      type="number" 
+                      defaultValue="100"
+                      placeholder="100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Limite de requests diários durante o período de teste</p>
+                  </div>
+                  <div>
+                    <Label>Preço Mensal (€)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      defaultValue="29.99"
+                      placeholder="29.99"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Custo mensal após o período de teste</p>
+                  </div>
+                  <div>
+                    <Label>Requests por Dia (Pago)</Label>
+                    <Input 
+                      type="number" 
+                      defaultValue="10000"
+                      placeholder="10000"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Limite de requests para utilizadores pagos</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="auto-approve" />
+                    <Label htmlFor="auto-approve">Aprovação Automática</Label>
+                  </div>
+                  <p className="text-sm text-gray-500">Se ativado, novas aplicações são aprovadas automaticamente</p>
+                </div>
+                <Button className="w-full">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Configurações
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         );
 

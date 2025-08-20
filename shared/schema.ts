@@ -50,15 +50,48 @@ export const plans = pgTable("plans", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Developer applications - requests for API access
+export const developerApplications = pgTable("developer_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  systemName: varchar("system_name").notNull(), // Name of the system that will use the API
+  systemDescription: text("system_description").notNull(),
+  websiteUrl: varchar("website_url"),
+  expectedUsage: text("expected_usage"), // Description of expected API usage
+  status: varchar("status").default('pending'), // pending, approved, rejected
+  approvedBy: varchar("approved_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
 // User API keys for developers
 export const apiKeys = pgTable("api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  applicationId: varchar("application_id").references(() => developerApplications.id),
   keyHash: varchar("key_hash").notNull(),
   name: varchar("name").notNull(),
+  systemName: varchar("system_name"), // System that uses this key
   isActive: boolean("is_active").default(true),
+  isTrial: boolean("is_trial").default(true), // Trial period API key
+  trialExpiresAt: timestamp("trial_expires_at"),
   lastUsed: timestamp("last_used"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Developer API settings (admin configurable)
+export const developerApiSettings = pgTable("developer_api_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trialDurationDays: integer("trial_duration_days").default(14), // Trial period in days
+  monthlyPrice: numeric("monthly_price").default('29.99'), // Monthly subscription price
+  yearlyPrice: numeric("yearly_price").default('299.99'), // Yearly subscription price
+  freeRequestsPerDay: integer("free_requests_per_day").default(100), // Free requests during trial
+  paidRequestsPerDay: integer("paid_requests_per_day").default(10000), // Requests for paid users
+  autoApproveApplications: boolean("auto_approve_applications").default(false),
+  requireManualReview: boolean("require_manual_review").default(true),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // File metadata
@@ -224,10 +257,21 @@ export const insertPlanSchema = createInsertSchema(plans).omit({
   createdAt: true,
 });
 
+export const insertDeveloperApplicationSchema = createInsertSchema(developerApplications).omit({
+  id: true,
+  createdAt: true,
+  reviewedAt: true,
+});
+
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   id: true,
   keyHash: true,
   createdAt: true,
+});
+
+export const insertDeveloperApiSettingsSchema = createInsertSchema(developerApiSettings).omit({
+  id: true,
+  updatedAt: true,
 });
 
 export const insertFileSchema = createInsertSchema(files).omit({
@@ -271,8 +315,12 @@ export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type Plan = typeof plans.$inferSelect;
 export type InsertPlan = z.infer<typeof insertPlanSchema>;
+export type DeveloperApplication = typeof developerApplications.$inferSelect;
+export type InsertDeveloperApplication = z.infer<typeof insertDeveloperApplicationSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type DeveloperApiSettings = typeof developerApiSettings.$inferSelect;
+export type InsertDeveloperApiSettings = z.infer<typeof insertDeveloperApiSettingsSchema>;
 export type File = typeof files.$inferSelect;
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type MegaCredentials = typeof megaCredentials.$inferSelect;

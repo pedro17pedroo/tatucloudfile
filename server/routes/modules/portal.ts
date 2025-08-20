@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { FileController } from '../../controllers/FileController';
 import { AdminController } from '../../controllers/AdminController';
+import { DeveloperController } from '../../controllers/DeveloperController';
 import { SeedController } from '../../controllers/SeedController';
 import { UserController } from '../../controllers/UserController';
 import { UserProfileController } from '../../controllers/UserProfileController';
@@ -95,6 +96,12 @@ portalRouter.put('/admin/mega-credentials', AdminController.updateMegaCredential
 portalRouter.post('/admin/mega-test-connection', AdminController.testMegaConnection);
 portalRouter.get('/admin/mega-account-status', AdminController.getMegaAccountStatus);
 portalRouter.post('/admin/mega-account-status/refresh', AdminController.refreshMegaAccountStatus);
+
+// Developer Management (Admin only)
+portalRouter.get('/admin/developer/applications', DeveloperController.getAllApplications);
+portalRouter.post('/admin/developer/applications/:applicationId/review', DeveloperController.reviewApplication);
+portalRouter.get('/admin/developer/settings', DeveloperController.getApiSettings);
+portalRouter.put('/admin/developer/settings', DeveloperController.updateApiSettings);
 
 // Audit Logs
 portalRouter.get('/admin/audit-logs', AdminController.getAuditLogs);

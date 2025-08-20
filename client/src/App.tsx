@@ -15,6 +15,7 @@ import Register from "@/pages/register";
 import Profile from "@/pages/profile";
 import Subscription from "@/pages/subscription";
 import Billing from "@/pages/billing";
+import DeveloperPortal from "@/pages/developer-portal";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -47,6 +48,7 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/subscription" component={Subscription} />
           <Route path="/billing" component={Billing} />
+          <Route path="/developer" component={() => <DeveloperPortal user={user} />} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin-login" component={AdminLogin} />
           <Route path="/api-docs" component={ApiDocs} />

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Cloud, Home, Settings, FileText, User, CreditCard, Receipt } from "lucide-react";
+import { Cloud, Home, Settings, FileText, User, CreditCard, Receipt, Code } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,7 @@ export function Navigation() {
 
   const navigationItems = [
     { path: "/", label: "Dashboard", icon: Home },
+    { path: "/developer", label: "Portal Desenvolvedor", icon: Code },
     { path: "/api-docs", label: "API Docs", icon: FileText },
     ...(user?.isAdmin ? [{ path: "/admin", label: "Admin", icon: Settings }] : []),
   ];
