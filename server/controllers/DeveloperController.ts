@@ -14,7 +14,7 @@ export class DeveloperController {
   // Submit application and get immediate API key
   static async submitApplication(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).currentUser?.id;
       if (!userId) {
         return res.status(401).json({ message: 'Utilizador não autenticado' });
       }
@@ -46,7 +46,7 @@ export class DeveloperController {
   // Get user's applications
   static async getUserApplications(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).currentUser?.id;
       if (!userId) {
         return res.status(401).json({ message: 'Utilizador não autenticado' });
       }
@@ -63,7 +63,7 @@ export class DeveloperController {
   // Get user's API keys
   static async getUserApiKeys(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).currentUser?.id;
       if (!userId) {
         return res.status(401).json({ message: 'Utilizador não autenticado' });
       }

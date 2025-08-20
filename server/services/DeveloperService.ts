@@ -50,8 +50,7 @@ export class DeveloperService {
 
       // Create API key with trial period
       await db.insert(apiKeys).values({
-        name: `${applicationData.systemName} - Chave de Teste`,
-        applicationId: applicationResult[0].id,
+        userId,
         keyHash: hashedKey,
         status: 'trial',
         expiresAt: trialExpiresAt,
@@ -183,7 +182,14 @@ export class DeveloperService {
         .where(status ? eq(developerApplications.status, status) : undefined);
 
       return {
-        applications,
+        applications: applications.map(app => ({
+          ...app,
+          user: app.user ? {
+            email: app.user.email || '',
+            firstName: app.user.firstName || undefined,
+            lastName: app.user.lastName || undefined,
+          } : { email: '', firstName: undefined, lastName: undefined }
+        })),
         total: totalResult[0]?.count || 0,
       };
     } catch (error) {
@@ -249,8 +255,7 @@ export class DeveloperService {
       trialExpiresAt.setDate(trialExpiresAt.getDate() + (settings.trialDurationDays || 14));
 
       await db.insert(apiKeys).values({
-        name: `${systemName} - API Key`,
-        applicationId,
+        userId,
         keyHash,
         status: 'trial',
         expiresAt: trialExpiresAt,
