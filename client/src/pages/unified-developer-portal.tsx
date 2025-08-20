@@ -686,8 +686,8 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                       <option value="/files">GET /files</option>
                       <option value="/files/upload">POST /files/upload</option>
                       <option value="/files/search">GET /files/search</option>
-                      <option value="/files/{id}/download">GET /files/{id}/download</option>
-                      <option value="/files/{id}">DELETE /files/{id}</option>
+                      <option value="/files/{id}/download">GET /files/&#123;id&#125;/download</option>
+                      <option value="/files/{id}">DELETE /files/&#123;id&#125;</option>
                     </select>
                   </div>
                 </div>
