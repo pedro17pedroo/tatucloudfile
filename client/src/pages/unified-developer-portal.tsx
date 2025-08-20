@@ -191,23 +191,8 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
           formData.append('folderPath', testEndpoint.folderPath);
         }
         
-        // Add custom names if they exist in the body preview
-        try {
-          const bodyData = JSON.parse(testEndpoint.body);
-          if (bodyData.files && Array.isArray(bodyData.files)) {
-            const customNames: { [key: number]: string } = {};
-            bodyData.files.forEach((fileInfo: any, index: number) => {
-              if (fileInfo.customName && fileInfo.customName !== `file_${index + 1}_${fileInfo.name.split('.')[0]}.${fileInfo.name.split('.').pop()}`) {
-                customNames[index] = fileInfo.customName;
-              }
-            });
-            if (Object.keys(customNames).length > 0) {
-              formData.append('customNames', JSON.stringify(customNames));
-            }
-          }
-        } catch (error) {
-          console.log('Could not parse custom names from body preview');
-        }
+        // Custom names functionality temporarily disabled
+        // No custom names will be sent to prevent file corruption issues
         
         requestOptions.body = formData;
         // Remove Content-Type header for FormData (browser will set it automatically)
@@ -954,8 +939,7 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                                 const fileData = allFiles.map((file, index) => ({
                                   name: file.name,
                                   size: file.size,
-                                  type: file.type,
-                                  customName: `file_${index + 1}_${file.name.split('.')[0]}.${file.name.split('.').pop()}`
+                                  type: file.type
                                 }));
                                 
                                 setTestEndpoint({
@@ -985,28 +969,31 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                                     <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB • {file.type}</p>
                                   </div>
                                   <div className="flex items-center space-x-2">
-                                    <Input
-                                      placeholder="Nome personalizado"
-                                      className="w-48 text-xs"
-                                      defaultValue={`file_${index + 1}_${file.name.split('.')[0]}`}
-                                      onChange={(e) => {
-                                        const updatedFiles = testEndpoint.selectedFiles || [];
-                                        const fileData = updatedFiles.map((f, i) => ({
-                                          name: f.name,
-                                          size: f.size,
-                                          type: f.type,
-                                          customName: i === index ? e.target.value : `file_${i + 1}_${f.name.split('.')[0]}.${f.name.split('.').pop()}`
-                                        }));
-                                        
-                                        setTestEndpoint({
-                                          ...testEndpoint,
-                                          body: JSON.stringify({
-                                            files: fileData,
-                                            folderPath: testEndpoint.folderPath || null
-                                          }, null, 2)
-                                        });
-                                      }}
-                                    />
+                                    {/* Custom name input temporarily disabled */}
+                                    {false && (
+                                      <Input
+                                        placeholder="Nome personalizado"
+                                        className="w-48 text-xs"
+                                        defaultValue={`file_${index + 1}_${file.name.split('.')[0]}`}
+                                        onChange={(e) => {
+                                          const updatedFiles = testEndpoint.selectedFiles || [];
+                                          const fileData = updatedFiles.map((f, i) => ({
+                                            name: f.name,
+                                            size: f.size,
+                                            type: f.type,
+                                            customName: i === index ? e.target.value : `file_${i + 1}_${f.name.split('.')[0]}.${f.name.split('.').pop()}`
+                                          }));
+                                          
+                                          setTestEndpoint({
+                                            ...testEndpoint,
+                                            body: JSON.stringify({
+                                              files: fileData,
+                                              folderPath: testEndpoint.folderPath || null
+                                            }, null, 2)
+                                          });
+                                        }}
+                                      />
+                                    )}
                                     <Button 
                                       size="sm" 
                                       variant="outline"
@@ -1044,7 +1031,6 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                                       ...testEndpoint,
                                       selectedFiles: [],
                                       body: JSON.stringify({
-                                        files: [],
                                         folderPath: testEndpoint.folderPath || null
                                       }, null, 2)
                                     });
@@ -1067,18 +1053,11 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                             value={testEndpoint.folderPath || ''}
                             onChange={(e) => {
                               const newFolderPath = e.target.value;
-                              const fileData = (testEndpoint.selectedFiles || []).map((file, index) => ({
-                                name: file.name,
-                                size: file.size,
-                                type: file.type,
-                                customName: `file_${index + 1}_${file.name.split('.')[0]}.${file.name.split('.').pop()}`
-                              }));
                               
                               setTestEndpoint({
                                 ...testEndpoint,
                                 folderPath: newFolderPath,
                                 body: JSON.stringify({
-                                  files: fileData,
                                   folderPath: newFolderPath || null
                                 }, null, 2)
                               });
