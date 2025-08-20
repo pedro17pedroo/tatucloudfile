@@ -15,9 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   AlertTriangle, CheckCircle, XCircle, Users, CreditCard, Key, Database, Settings, 
   Activity, Eye, FileText, Trash2, Shield, RefreshCw, Download, Package, Wallet, 
-  Plus, Edit, Save, BarChart3, MonitorSpeaker, UserCheck, Zap
+  Plus, Edit, Save, BarChart3, MonitorSpeaker, UserCheck, Zap, Building2, Globe
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import type { PaymentMethod } from '@shared/schema';
 
 interface SystemStats {
   totalUsers: number;
