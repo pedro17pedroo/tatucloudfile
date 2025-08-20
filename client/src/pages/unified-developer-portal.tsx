@@ -233,19 +233,52 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
         url += params;
       }
       
+      console.log('Making API request to:', url);
+      console.log('Request options:', { ...requestOptions, body: requestOptions.body instanceof FormData ? '[FormData]' : requestOptions.body });
+      
       const response = await fetch(url, requestOptions);
       
-      const result = await response.json();
+      console.log('Response received:', response.status, response.statusText);
+      
+      let result;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        result = { message: text || `Response with status ${response.status}` };
+      }
+      
       setTestResponse({
         status: response.status,
         statusText: response.statusText,
         data: result
       });
     } catch (error: any) {
+      console.error('API test error:', error);
+      
+      let errorMessage = error.message;
+      let troubleshooting = '';
+      
+      // Provide specific troubleshooting for common issues
+      if (error.message.includes('Failed to fetch')) {
+        if (error.stack && error.stack.includes('chrome-extension://')) {
+          troubleshooting = 'Browser extension interference detected. Try disabling browser extensions or use an incognito window.';
+        } else {
+          troubleshooting = 'Network request failed. Check if the API server is running and accessible.';
+        }
+      } else if (error.message.includes('CORS')) {
+        troubleshooting = 'Cross-Origin Request Sharing (CORS) issue. Check server CORS configuration.';
+      }
+      
       setTestResponse({
         status: 'ERROR',
         statusText: 'Network Error', 
-        data: { error: error.message }
+        data: { 
+          error: errorMessage,
+          troubleshooting: troubleshooting,
+          timestamp: new Date().toISOString()
+        }
       });
     }
     setIsTestingEndpoint(false);
@@ -694,6 +727,19 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
           </TabsContent>
 
           <TabsContent value="testing" className="space-y-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-6">
+              <div className="flex items-start">
+                <AlertTriangle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Nota sobre Extensões do Browser:</p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    Se receber erros "Failed to fetch", pode ser causado por extensões do browser que interferem com pedidos de rede. 
+                    Tente desativar extensões ou usar uma janela privada/incógnito.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -1083,6 +1129,8 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                         <span className={`font-medium ${
                           testResponse.status >= 200 && testResponse.status < 300 
                             ? 'text-green-600' 
+                            : testResponse.status === 'ERROR'
+                            ? 'text-red-600'
                             : 'text-red-600'
                         }`}>
                           Status: {testResponse.status} {testResponse.statusText}
@@ -1095,6 +1143,19 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
                           <Copy className="w-4 h-4" />
                         </Button>
                       </div>
+                      
+                      {testResponse.status === 'ERROR' && testResponse.data?.troubleshooting && (
+                        <div className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                          <div className="flex items-start">
+                            <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Solução de Problemas:</p>
+                              <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">{testResponse.data.troubleshooting}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       <pre className="text-xs overflow-x-auto">
                         {JSON.stringify(testResponse.data, null, 2)}
                       </pre>
