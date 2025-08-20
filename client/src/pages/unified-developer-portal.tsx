@@ -42,7 +42,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
 
   const [testEndpoint, setTestEndpoint] = useState({
     method: 'GET',
-    endpoint: '/api/files',
+    endpoint: '/files',
     body: '',
     headers: { 'Authorization': 'Bearer your_api_key' }
   });
@@ -117,14 +117,31 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     setIsTestingEndpoint(true);
     try {
       const baseUrl = window.location.origin + '/api/v1';
-      const response = await fetch(baseUrl + testEndpoint.endpoint, {
+      let requestOptions: RequestInit = {
         method: testEndpoint.method,
         headers: {
+          ...testEndpoint.headers
+        }
+      };
+
+      // Handle file upload differently
+      if (testEndpoint.endpoint === '/files/upload' && (testEndpoint as any).selectedFile) {
+        const formData = new FormData();
+        formData.append('file', (testEndpoint as any).selectedFile);
+        if ((testEndpoint as any).filePath) {
+          formData.append('path', (testEndpoint as any).filePath);
+        }
+        requestOptions.body = formData;
+        // Remove Content-Type header for FormData (browser will set it automatically)
+      } else if (testEndpoint.method !== 'GET' && testEndpoint.body) {
+        requestOptions.headers = {
           'Content-Type': 'application/json',
           ...testEndpoint.headers
-        },
-        body: testEndpoint.method !== 'GET' ? testEndpoint.body : undefined
-      });
+        };
+        requestOptions.body = testEndpoint.body;
+      }
+
+      const response = await fetch(baseUrl + testEndpoint.endpoint, requestOptions);
       
       const result = await response.json();
       setTestResponse({
@@ -135,7 +152,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     } catch (error: any) {
       setTestResponse({
         status: 'ERROR',
-        statusText: 'Network Error',
+        statusText: 'Network Error', 
         data: { error: error.message }
       });
     }
@@ -570,9 +587,9 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                       onChange={(e) => setTestEndpoint({ ...testEndpoint, endpoint: e.target.value })}
                       className="w-full mt-1 p-2 border rounded-md"
                     >
-                      <option value="/api/files">GET /api/files</option>
-                      <option value="/api/files/upload">POST /api/files/upload</option>
-                      <option value="/api/files/search">GET /api/files/search</option>
+                      <option value="/files">GET /files</option>
+                      <option value="/files/upload">POST /files/upload</option>
+                      <option value="/files/search">GET /files/search</option>
                     </select>
                   </div>
                 </div>
@@ -617,14 +634,62 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                 
                 {testEndpoint.method !== 'GET' && (
                   <div>
-                    <Label>Request Body (JSON)</Label>
-                    <Textarea
-                      value={testEndpoint.body}
-                      onChange={(e) => setTestEndpoint({ ...testEndpoint, body: e.target.value })}
-                      placeholder='{"fileName": "test.pdf", "path": "/documents/"}'
-                      className="mt-1 font-mono"
-                      rows={4}
-                    />
+                    <Label>Request Body</Label>
+                    {testEndpoint.endpoint === '/files/upload' ? (
+                      <div className="space-y-3 mt-1">
+                        <div>
+                          <Label htmlFor="file-upload" className="text-sm text-gray-600">Ficheiro para Upload</Label>
+                          <input
+                            id="file-upload"
+                            type="file"
+                            className="w-full mt-1 p-2 border rounded-md"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                const file = e.target.files[0];
+                                setTestEndpoint({
+                                  ...testEndpoint,
+                                  body: JSON.stringify({
+                                    fileName: file.name,
+                                    fileSize: file.size,
+                                    mimeType: file.type
+                                  }, null, 2),
+                                  selectedFile: file
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="file-path" className="text-sm text-gray-600">Caminho (opcional)</Label>
+                          <Input
+                            id="file-path"
+                            placeholder="/documents/report.pdf"
+                            className="mt-1"
+                            onChange={(e) => setTestEndpoint({
+                              ...testEndpoint,
+                              filePath: e.target.value
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm text-gray-600">Preview dos Dados</Label>
+                          <textarea
+                            value={testEndpoint.body}
+                            readOnly
+                            className="w-full mt-1 p-2 border rounded-md font-mono text-sm bg-gray-50"
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={testEndpoint.body}
+                        onChange={(e) => setTestEndpoint({ ...testEndpoint, body: e.target.value })}
+                        placeholder='{"fileName": "test.pdf", "path": "/documents/"}'
+                        className="mt-1 font-mono"
+                        rows={4}
+                      />
+                    )}
                   </div>
                 )}
                 

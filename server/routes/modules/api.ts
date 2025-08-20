@@ -1,0 +1,196 @@
+import { Router } from 'express';
+import multer from 'multer';
+import { megaService } from '../../services/megaService';
+import { db } from '../../db';
+import { apiKeys, files } from '@shared/schema';
+import { eq, and, like } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
+
+const apiRouter = Router();
+const upload = multer({ storage: multer.memoryStorage() });
+
+// API Key Authentication Middleware
+async function authenticateApiKey(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+  
+  const apiKey = authHeader.slice(7);
+  
+  try {
+    // Hash the provided key to compare with stored hash
+    const keyRecord = await db.select().from(apiKeys).where(
+      and(eq(apiKeys.isActive, true))
+    );
+    
+    let validKey = null;
+    for (const key of keyRecord) {
+      const isValid = await bcrypt.compare(apiKey, key.keyHash);
+      if (isValid) {
+        validKey = key;
+        break;
+      }
+    }
+    
+    if (!validKey) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    // Add user info to request
+    req.apiUser = { userId: validKey.userId };
+    next();
+  } catch (error) {
+    console.error('API key validation error:', error);
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+}
+
+// Apply API key auth to all routes
+apiRouter.use(authenticateApiKey);
+
+// File Upload
+apiRouter.post('/files/upload', upload.single('file'), async (req: any, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    const fileName = req.file.originalname;
+    const fileBuffer = req.file.buffer;
+    const remotePath = req.body.path || `/${fileName}`;
+
+    // Upload to MEGA
+    const result = await megaService.uploadFile(fileBuffer, fileName, remotePath);
+
+    // Store file metadata
+    const fileRecord = await db.insert(files).values({
+      userId: req.apiUser.userId,
+      fileName: fileName,
+      fileSize: req.file.size.toString(),
+      mimeType: req.file.mimetype,
+      megaFileId: result.id,
+      filePath: remotePath,
+    }).returning();
+
+    const file = fileRecord[0];
+
+    res.json({
+      success: true,
+      file: {
+        id: file.id,
+        name: file.fileName,
+        size: parseInt(file.fileSize),
+        uploadedAt: file.uploadedAt,
+        downloadUrl: `/api/v1/files/${file.id}/download`
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'File upload failed' });
+  }
+});
+
+// List Files
+apiRouter.get('/files', async (req: any, res) => {
+  try {
+    const userFiles = await db.select().from(files).where(eq(files.userId, req.apiUser.userId));
+    res.json({
+      files: userFiles.map(file => ({
+        id: file.id,
+        name: file.fileName,
+        size: parseInt(file.fileSize),
+        mimeType: file.mimeType,
+        uploadedAt: file.uploadedAt,
+        downloadUrl: `/api/v1/files/${file.id}/download`
+      }))
+    });
+  } catch (error) {
+    console.error('List files error:', error);
+    res.status(500).json({ error: 'Failed to list files' });
+  }
+});
+
+// Download File
+apiRouter.get('/files/:id/download', async (req: any, res) => {
+  try {
+    const fileRecord = await db.select().from(files).where(
+      and(eq(files.id, req.params.id), eq(files.userId, req.apiUser.userId))
+    );
+
+    if (fileRecord.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileRecord[0];
+    const downloadUrl = await megaService.getDownloadUrl(file.megaFileId);
+    res.json({
+      success: true,
+      downloadUrl: downloadUrl,
+      fileName: file.fileName
+    });
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Failed to get download URL' });
+  }
+});
+
+// Search Files
+apiRouter.get('/files/search', async (req: any, res) => {
+  try {
+    const query = req.query.q as string;
+    if (!query) {
+      return res.status(400).json({ error: 'Query parameter "q" is required' });
+    }
+
+    const searchResults = await db.select().from(files).where(
+      and(
+        eq(files.userId, req.apiUser.userId),
+        like(files.fileName, `%${query}%`)
+      )
+    );
+
+    res.json({
+      files: searchResults.map((file: any) => ({
+        id: file.id,
+        name: file.fileName,
+        size: parseInt(file.fileSize),
+        mimeType: file.mimeType,
+        uploadedAt: file.uploadedAt,
+        downloadUrl: `/api/v1/files/${file.id}/download`
+      }))
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+// Delete File
+apiRouter.delete('/files/:id', async (req: any, res) => {
+  try {
+    const fileRecord = await db.select().from(files).where(
+      and(eq(files.id, req.params.id), eq(files.userId, req.apiUser.userId))
+    );
+
+    if (fileRecord.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileRecord[0];
+
+    // Delete from MEGA
+    await megaService.deleteFile(file.megaFileId);
+    
+    // Delete from database
+    await db.delete(files).where(eq(files.id, req.params.id));
+
+    res.json({ success: true, message: 'File deleted' });
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+export { apiRouter };

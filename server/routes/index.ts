@@ -128,6 +128,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/auth', authRouter);
   app.use('/api/portal/developer', developerRouter);
   app.use('/api/portal', portalRouter);
+  
+  // API v1 routes for developers
+  const { apiRouter } = await import('./modules/api');
+  app.use('/api/v1', apiRouter);
 
   // API documentation endpoint
   app.get('/api', (req: any, res: any) => {
