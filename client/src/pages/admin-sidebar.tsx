@@ -15,10 +15,14 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   AlertTriangle, CheckCircle, XCircle, Users, CreditCard, Key, Database, Settings, 
   Activity, Eye, FileText, Trash2, Shield, RefreshCw, Download, Package, Wallet, 
-  Plus, Edit, Save, BarChart3, MonitorSpeaker, UserCheck, Zap, Building2, Globe
+  Plus, Edit, Save, BarChart3, MonitorSpeaker, UserCheck, Zap, Building2, Globe,
+  User, LogOut, ChevronDown
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import type { PaymentMethod } from '@shared/schema';
+import { useAuth } from '@/hooks/useAuth';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface SystemStats {
   totalUsers: number;
@@ -199,6 +203,7 @@ export function AdminPanelWithSidebar() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, logout } = useAuth();
 
   // API Key mutations
   const createApiKeyMutation = useMutation({
@@ -610,6 +615,105 @@ export function AdminPanelWithSidebar() {
                 </Card>
               </>
             )}
+          </div>
+        );
+
+      case 'profile':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2" />
+                  Perfil do Administrador
+                </CardTitle>
+                <CardDescription>
+                  Gerir as informações do seu perfil administrativo
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center space-x-6">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || ''} />
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-lg">
+                      <User className="h-10 w-10" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-2">
+                    <h3 className="text-lg font-semibold">
+                      {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Administrador'}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Administrador
+                    </Badge>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="profile-email">Email</Label>
+                    <Input
+                      id="profile-email"
+                      type="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="profile-name">Nome</Label>
+                    <Input
+                      id="profile-name"
+                      value={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : ''}
+                      disabled
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="profile-role">Função</Label>
+                    <Input
+                      id="profile-role"
+                      value="Administrador do Sistema"
+                      disabled
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="profile-created">Membro desde</Label>
+                    <Input
+                      id="profile-created"
+                      value={user?.createdAt ? formatDate(user.createdAt) : 'N/A'}
+                      disabled
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex space-x-4">
+                  <Button variant="outline" disabled>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar Perfil
+                  </Button>
+                  <Button variant="outline" disabled>
+                    <Key className="w-4 h-4 mr-2" />
+                    Alterar Password
+                  </Button>
+                </div>
+                
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <p><strong>Nota:</strong> Para alterar as informações do perfil, contacte o administrador do sistema ou utilize as configurações do Replit OAuth.</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         );
 
@@ -2013,12 +2117,51 @@ export function AdminPanelWithSidebar() {
       <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Painel Administrativo</h1>
             <Badge variant="outline" className="text-green-600 border-green-600">
               <Shield className="w-3 h-3 mr-1" />
               Admin
             </Badge>
+          </div>
+          
+          {/* User Profile Section */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || ''} />
+                <AvatarFallback className="bg-blue-100 text-blue-700">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || 'Admin'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" data-testid="admin-profile-menu">
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setActiveTab('profile')} data-testid="menu-profile">
+                  <User className="mr-2 h-4 w-4" />
+                  Perfil
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-red-600" data-testid="menu-logout">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
