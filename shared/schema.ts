@@ -295,7 +295,3 @@ export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 export type MegaAccountStatus = typeof megaAccountStatus.$inferSelect;
 export type InsertMegaAccountStatus = typeof megaAccountStatus.$inferInsert;
-export type PaymentMethod = typeof paymentMethods.$inferSelect;
-export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
-export type PaymentProof = typeof paymentProofs.$inferSelect;
-export type InsertPaymentProof = z.infer<typeof insertPaymentProofSchema>;
