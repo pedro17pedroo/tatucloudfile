@@ -70,6 +70,42 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     queryKey: ['/api/portal/developer/api-keys'],
   });
 
+  // Load plain text keys for active API keys
+  const loadApiKeyPlainText = async (keyId: string): Promise<string | null> => {
+    try {
+      const response = await apiRequest(`/api/portal/developer/api-keys/${keyId}/plain-text`, 'GET');
+      const data = await response.json();
+      return data.key || null;
+    } catch (error) {
+      console.error('Error loading plain text API key:', error);
+      return null;
+    }
+  };
+
+  // Load all plain text keys when apiKeys change
+  useEffect(() => {
+    if (apiKeys?.apiKeys) {
+      const loadAllPlainTextKeys = async () => {
+        const updatedKeys = await Promise.all(
+          apiKeys.apiKeys.map(async (key) => {
+            if (key.isActive) {
+              const plainTextKey = await loadApiKeyPlainText(key.id);
+              return { ...key, plainTextKey };
+            }
+            return key;
+          })
+        );
+        
+        // Update the query cache with plain text keys
+        queryClient.setQueryData(['/api/portal/developer/api-keys'], {
+          apiKeys: updatedKeys
+        });
+      };
+      
+      loadAllPlainTextKeys();
+    }
+  }, [apiKeys?.apiKeys?.length]);
+
   const { data: settings } = useQuery<DeveloperApiSettings>({
     queryKey: ['/api/portal/developer/settings'],
   });
@@ -474,9 +510,13 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     <div className="flex items-center space-x-2 mt-1">
                       <code className="flex-1 bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm">
                         Authorization: Bearer {
-                          hasActiveApiKey && apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) 
-                            ? apiKeys.apiKeys.find(key => key.isActive && key.plainTextKey)?.plainTextKey
-                            : hasActiveApiKey ? '[USE_SUA_CHAVE_API_DA_SECAO_ABAIXO]' : 'your_api_key'
+                          (() => {
+                            const activeKeyWithText = apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey);
+                            if (activeKeyWithText?.plainTextKey) {
+                              return activeKeyWithText.plainTextKey;
+                            }
+                            return hasActiveApiKey ? '[CARREGANDO_CHAVE...]' : 'your_api_key';
+                          })()
                         }
                       </code>
                       <Button 
@@ -501,7 +541,12 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                     </div>
                     {hasActiveApiKey && !apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                        💡 Use a chave API da seção "Chaves API Ativas" abaixo
+                        💡 Carregando chave API... Se não aparecer, use a chave da seção "Chaves API Ativas" abaixo
+                      </p>
+                    )}
+                    {apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        ✅ Chave API carregada com sucesso!
                       </p>
                     )}
                   </div>
@@ -616,15 +661,38 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
                 
                 <div>
                   <Label>Authorization Header</Label>
-                  <Input
-                    value={testEndpoint.headers.Authorization}
-                    onChange={(e) => setTestEndpoint({ 
-                      ...testEndpoint, 
-                      headers: { ...testEndpoint.headers, Authorization: e.target.value }
-                    })}
-                    placeholder="Bearer your_api_key_here"
-                    className="mt-1 font-mono"
-                  />
+                  <div className="flex space-x-2">
+                    <Input
+                      value={testEndpoint.headers.Authorization}
+                      onChange={(e) => setTestEndpoint({ 
+                        ...testEndpoint, 
+                        headers: { ...testEndpoint.headers, Authorization: e.target.value }
+                      })}
+                      placeholder="Bearer your_api_key_here"
+                      className="mt-1 font-mono flex-1"
+                    />
+                    {hasActiveApiKey && apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="mt-1"
+                        onClick={() => {
+                          const activeKey = apiKeys.apiKeys.find(key => key.isActive && key.plainTextKey);
+                          if (activeKey?.plainTextKey) {
+                            setTestEndpoint({
+                              ...testEndpoint,
+                              headers: { ...testEndpoint.headers, Authorization: `Bearer ${activeKey.plainTextKey}` }
+                            });
+                            toast({ title: 'Chave API aplicada', description: 'A sua chave API ativa foi aplicada no campo de autorização.' });
+                          }
+                        }}
+                        data-testid="use-active-api-key"
+                      >
+                        <Key className="w-3 h-3 mr-1" />
+                        Usar Chave Ativa
+                      </Button>
+                    )}
+                  </div>
                   {hasActiveApiKey && apiKeys?.apiKeys?.find(key => key.isActive && key.plainTextKey) && (
                     <Button 
                       size="sm" 
