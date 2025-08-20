@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '../../controllers/AuthController';
 import { RegistrationController } from '../../controllers/RegistrationController';
 import { OtpController } from '../../controllers/OtpController';
+import { ProfileController } from '../../controllers/ProfileController';
 import { AdminController } from '../../controllers/AdminController';
 import { db } from '../../db';
 import { users } from '@shared/schema';
@@ -19,6 +20,10 @@ authRouter.get('/user', AuthController.getUser);
 // OTP routes
 authRouter.post('/send-otp', OtpController.sendOtp);
 authRouter.post('/verify-otp', OtpController.verifyOtp);
+
+// Profile management routes
+authRouter.put('/profile', ProfileController.updateProfile);
+authRouter.put('/change-password', ProfileController.changePassword);
 
 // Public routes for registration
 authRouter.get('/plans', AdminController.getPlans);

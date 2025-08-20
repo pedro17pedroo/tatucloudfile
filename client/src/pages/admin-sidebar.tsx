@@ -19,7 +19,6 @@ import {
   User, LogOut, ChevronDown
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
-import type { PaymentMethod } from '@shared/schema';
 import { useAuth } from '@/hooks/useAuth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -200,10 +199,103 @@ export function AdminPanelWithSidebar() {
   });
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<{ key: string; name: string } | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', email: '' });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  
+  const handleLogout = async () => {
+    try {
+      await apiRequest('/api/auth/logout', 'POST');
+      window.location.href = '/';
+    } catch (error) {
+      toast({ title: 'Erro ao fazer logout', description: 'Tente novamente', variant: 'destructive' });
+    }
+  };
+
+  // Initialize profile form when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || ''
+      });
+    }
+  }, [user]);
+
+  // Profile management mutations
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string }) => {
+      const response = await apiRequest('/api/auth/profile', 'PUT', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      setEditingProfile(false);
+      toast({ title: "Perfil atualizado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao atualizar perfil", 
+        description: error.message || "Tente novamente",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const response = await apiRequest('/api/auth/change-password', 'PUT', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowPasswordDialog(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast({ title: "Password alterada com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao alterar password", 
+        description: error.message || "Verifique a password atual",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleProfileSave = () => {
+    if (!profileForm.firstName.trim()) {
+      toast({ title: "Nome é obrigatório", variant: "destructive" });
+      return;
+    }
+    updateProfileMutation.mutate({
+      firstName: profileForm.firstName.trim(),
+      lastName: profileForm.lastName.trim()
+    });
+  };
+
+  const handlePasswordChange = () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "As passwords não coincidem", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast({ title: "A nova password deve ter pelo menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword
+    });
+  };
 
   // API Key mutations
   const createApiKeyMutation = useMutation({
@@ -661,17 +753,31 @@ export function AdminPanelWithSidebar() {
                       type="email"
                       value={user?.email || ''}
                       disabled
-                      className="mt-1"
+                      className="mt-1 bg-gray-50 dark:bg-gray-700"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="profile-name">Nome</Label>
+                    <Label htmlFor="profile-firstName">Nome</Label>
                     <Input
-                      id="profile-name"
-                      value={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : ''}
-                      disabled
-                      className="mt-1"
+                      id="profile-firstName"
+                      value={editingProfile ? profileForm.firstName : (user?.firstName || '')}
+                      onChange={(e) => editingProfile && setProfileForm({ ...profileForm, firstName: e.target.value })}
+                      disabled={!editingProfile}
+                      className={`mt-1 ${!editingProfile ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+                      placeholder="Nome"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="profile-lastName">Sobrenome</Label>
+                    <Input
+                      id="profile-lastName"
+                      value={editingProfile ? profileForm.lastName : (user?.lastName || '')}
+                      onChange={(e) => editingProfile && setProfileForm({ ...profileForm, lastName: e.target.value })}
+                      disabled={!editingProfile}
+                      className={`mt-1 ${!editingProfile ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+                      placeholder="Sobrenome"
                     />
                   </div>
                   
@@ -681,17 +787,17 @@ export function AdminPanelWithSidebar() {
                       id="profile-role"
                       value="Administrador do Sistema"
                       disabled
-                      className="mt-1"
+                      className="mt-1 bg-gray-50 dark:bg-gray-700"
                     />
                   </div>
                   
-                  <div>
+                  <div className="md:col-span-2">
                     <Label htmlFor="profile-created">Membro desde</Label>
                     <Input
                       id="profile-created"
-                      value={user?.createdAt ? formatDate(user.createdAt) : 'N/A'}
+                      value={user?.createdAt ? formatDate(user.createdAt.toString()) : 'N/A'}
                       disabled
-                      className="mt-1"
+                      className="mt-1 bg-gray-50 dark:bg-gray-700"
                     />
                   </div>
                 </div>
@@ -699,14 +805,108 @@ export function AdminPanelWithSidebar() {
                 <Separator />
                 
                 <div className="flex space-x-4">
-                  <Button variant="outline" disabled>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar Perfil
-                  </Button>
-                  <Button variant="outline" disabled>
-                    <Key className="w-4 h-4 mr-2" />
-                    Alterar Password
-                  </Button>
+                  {editingProfile ? (
+                    <>
+                      <Button 
+                        onClick={handleProfileSave} 
+                        disabled={updateProfileMutation.isPending}
+                        data-testid="save-profile"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setEditingProfile(false);
+                          setProfileForm({
+                            firstName: user?.firstName || '',
+                            lastName: user?.lastName || '',
+                            email: user?.email || ''
+                          });
+                        }}
+                        data-testid="cancel-profile-edit"
+                      >
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setEditingProfile(true)}
+                      data-testid="edit-profile"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar Perfil
+                    </Button>
+                  )}
+                  
+                  <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" data-testid="change-password">
+                        <Key className="w-4 h-4 mr-2" />
+                        Alterar Password
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Alterar Password</DialogTitle>
+                        <DialogDescription>
+                          Introduza a sua password atual e a nova password
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="current-password">Password Atual</Label>
+                          <Input
+                            id="current-password"
+                            type="password"
+                            value={passwordForm.currentPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="new-password">Nova Password</Label>
+                          <Input
+                            id="new-password"
+                            type="password"
+                            value={passwordForm.newPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="confirm-password">Confirmar Nova Password</Label>
+                          <Input
+                            id="confirm-password"
+                            type="password"
+                            value={passwordForm.confirmPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={handlePasswordChange}
+                            disabled={changePasswordMutation.isPending}
+                            data-testid="confirm-password-change"
+                          >
+                            {changePasswordMutation.isPending ? 'Alterando...' : 'Alterar Password'}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setShowPasswordDialog(false);
+                              setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 
                 <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -2156,7 +2356,7 @@ export function AdminPanelWithSidebar() {
                   Perfil
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-red-600" data-testid="menu-logout">
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600" data-testid="menu-logout">
                   <LogOut className="mr-2 h-4 w-4" />
                   Sair
                 </DropdownMenuItem>

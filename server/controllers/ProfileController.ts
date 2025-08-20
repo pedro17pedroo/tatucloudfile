@@ -6,7 +6,7 @@ import { storage } from '../storage';
 const updateProfileSchema = z.object({
   firstName: z.string().min(1, 'Nome é obrigatório'),
   lastName: z.string().min(1, 'Apelido é obrigatório'),
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Email inválido').optional(),
   phone: z.string().optional(),
 });
 
@@ -30,30 +30,33 @@ export class ProfileController {
 
       const profileData = updateProfileSchema.parse(req.body);
       
-      // Check if email is already in use by another user
+      // Create update object with only provided fields
+      const updateData: any = {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        updatedAt: new Date(),
+      };
+
+      // Only update email if provided
       if (profileData.email) {
         const existingUser = await storage.getUserByEmail(profileData.email);
         if (existingUser && existingUser.id !== userId) {
           return res.status(409).json({ message: 'Este email já está em uso por outra conta' });
         }
+        updateData.email = profileData.email;
       }
 
-      // Check if phone is already in use by another user (if provided)
+      // Only update phone if provided
       if (profileData.phone) {
         const existingUser = await storage.getUserByPhone(profileData.phone);
         if (existingUser && existingUser.id !== userId) {
           return res.status(409).json({ message: 'Este telefone já está em uso por outra conta' });
         }
+        updateData.phone = profileData.phone;
       }
 
       // Update user profile
-      const updatedUser = await storage.updateUser(userId, {
-        firstName: profileData.firstName,
-        lastName: profileData.lastName,
-        email: profileData.email,
-        phone: profileData.phone || null,
-        updatedAt: new Date(),
-      });
+      const updatedUser = await storage.updateUser(userId, updateData);
 
       res.json({
         message: 'Perfil atualizado com sucesso',
