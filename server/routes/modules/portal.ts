@@ -91,9 +91,10 @@ portalRouter.get('/admin/api-usage', AdminController.getApiUsage);
 
 // MEGA Management
 portalRouter.get('/admin/mega-credentials', AdminController.getMegaCredentials);
-portalRouter.post('/admin/mega-credentials', AdminController.updateMegaCredentials);
-portalRouter.get('/admin/mega-status', AdminController.getMegaAccountStatus);
-portalRouter.post('/admin/mega-status/refresh', AdminController.refreshMegaAccountStatus);
+portalRouter.put('/admin/mega-credentials', AdminController.updateMegaCredentials);
+portalRouter.post('/admin/mega-test-connection', AdminController.testMegaConnection);
+portalRouter.get('/admin/mega-account-status', AdminController.getMegaAccountStatus);
+portalRouter.post('/admin/mega-account-status/refresh', AdminController.refreshMegaAccountStatus);
 
 // Audit Logs
 portalRouter.get('/admin/audit-logs', AdminController.getAuditLogs);

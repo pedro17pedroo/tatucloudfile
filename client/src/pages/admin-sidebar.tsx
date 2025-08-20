@@ -279,7 +279,67 @@ export function AdminPanelWithSidebar() {
 
   const { data: megaCredentialsData } = useQuery({
     queryKey: ['/api/portal/admin/mega-credentials'],
+    queryFn: () => apiRequest('/api/portal/admin/mega-credentials').then(r => r.json()),
     enabled: activeTab === 'mega',
+  });
+
+  const { data: megaAccountStatus, refetch: refetchMegaStatus } = useQuery({
+    queryKey: ['/api/portal/admin/mega-account-status'],
+    queryFn: () => apiRequest('/api/portal/admin/mega-account-status').then(r => r.json()),
+    enabled: activeTab === 'mega',
+  });
+
+  // MEGA mutations
+  const updateMegaCredentialsMutation = useMutation({
+    mutationFn: async (credentials: { email: string; password: string }) => {
+      const response = await apiRequest('/api/portal/admin/mega-credentials', 'PUT', credentials);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/mega-credentials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/mega-account-status'] });
+      toast({ title: 'Credenciais MEGA guardadas com sucesso!' });
+      setMegaCredentials({ email: '', password: '' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Erro ao guardar credenciais MEGA', 
+        description: error.message || 'Credenciais inválidas',
+        variant: 'destructive' 
+      });
+    }
+  });
+
+  const testMegaConnectionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/portal/admin/mega-test-connection', 'POST', megaCredentials);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Conexão MEGA testada com sucesso!' });
+      refetchMegaStatus();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Erro na conexão MEGA', 
+        description: error.message || 'Falha na conexão',
+        variant: 'destructive' 
+      });
+    }
+  });
+
+  const refreshMegaStatusMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/portal/admin/mega-account-status/refresh', 'POST');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/mega-account-status'] });
+      toast({ title: 'Estado da conta MEGA atualizado!' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar estado MEGA', variant: 'destructive' });
+    }
   });
 
   const { data: plansData, isLoading: plansLoading } = useQuery<Plan[]>({
@@ -1438,6 +1498,98 @@ export function AdminPanelWithSidebar() {
       case 'mega':
         return (
           <div className="space-y-6">
+            {/* MEGA Account Status */}
+            {megaAccountStatus && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Database className="w-5 h-5" />
+                    <span>Estado da Conta MEGA</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Informações sobre a conta MEGA conectada
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center space-x-2">
+                        {megaAccountStatus.isConnected ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-600" />
+                        )}
+                        <span className="text-sm font-medium">
+                          {megaAccountStatus.isConnected ? 'Conectado' : 'Desconectado'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Estado da Conexão
+                      </p>
+                    </div>
+                    
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                      <p className="text-lg font-bold text-green-700">
+                        {megaAccountStatus.totalSpace ? formatBytes(megaAccountStatus.totalSpace) : 'N/A'}
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">Espaço Total</p>
+                    </div>
+                    
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <p className="text-lg font-bold text-orange-700">
+                        {megaAccountStatus.usedSpace ? formatBytes(megaAccountStatus.usedSpace) : 'N/A'}
+                      </p>
+                      <p className="text-xs text-orange-600 mt-1">Espaço Usado</p>
+                    </div>
+                    
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <p className="text-lg font-bold text-purple-700">
+                        {megaAccountStatus.availableSpace ? formatBytes(megaAccountStatus.availableSpace) : 'N/A'}
+                      </p>
+                      <p className="text-xs text-purple-600 mt-1">Espaço Disponível</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <span>Tipo de conta: </span>
+                      <Badge variant={megaAccountStatus.accountType === 'pro' ? 'default' : 'secondary'}>
+                        {megaAccountStatus.accountType?.toUpperCase() || 'Free'}
+                      </Badge>
+                      {megaAccountStatus.lastChecked && (
+                        <span className="ml-4">
+                          Última verificação: {formatDate(megaAccountStatus.lastChecked)}
+                        </span>
+                      )}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => refreshMegaStatusMutation.mutate()}
+                      disabled={refreshMegaStatusMutation.isPending}
+                      data-testid="button-refresh-mega-status"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${refreshMegaStatusMutation.isPending ? 'animate-spin' : ''}`} />
+                      Atualizar
+                    </Button>
+                  </div>
+                  
+                  {megaAccountStatus.error && (
+                    <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <div className="flex">
+                        <AlertTriangle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0" />
+                        <div className="text-sm">
+                          <p className="text-red-800 dark:text-red-200 font-medium">Erro na conexão MEGA</p>
+                          <p className="text-red-700 dark:text-red-300 mt-1">{megaAccountStatus.error}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* MEGA Credentials Configuration */}
             <Card>
               <CardHeader>
                 <CardTitle>Configuração MEGA</CardTitle>
@@ -1453,7 +1605,8 @@ export function AdminPanelWithSidebar() {
                     type="email"
                     value={megaCredentials.email}
                     onChange={(e) => setMegaCredentials({...megaCredentials, email: e.target.value})}
-                    placeholder="seu-email@exemplo.com"
+                    placeholder={megaCredentialsData?.credentials?.email || "seu-email@exemplo.com"}
+                    data-testid="input-mega-email"
                   />
                 </div>
                 <div>
@@ -1464,16 +1617,42 @@ export function AdminPanelWithSidebar() {
                     value={megaCredentials.password}
                     onChange={(e) => setMegaCredentials({...megaCredentials, password: e.target.value})}
                     placeholder="Sua password MEGA"
+                    data-testid="input-mega-password"
                   />
                 </div>
+                
+                {megaCredentialsData?.credentials && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
+                      <div className="text-sm">
+                        <p className="text-blue-800 dark:text-blue-200 font-medium">Credenciais Atuais</p>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          Email: {megaCredentialsData.credentials.email}
+                          {megaCredentialsData.credentials.hasPassword && ' • Password configurada'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex space-x-2">
-                  <Button>
-                    <Save className="w-4 h-4 mr-2" />
-                    Guardar Credenciais
+                  <Button 
+                    onClick={() => updateMegaCredentialsMutation.mutate(megaCredentials)}
+                    disabled={updateMegaCredentialsMutation.isPending || !megaCredentials.email || !megaCredentials.password}
+                    data-testid="button-save-mega-credentials"
+                  >
+                    <Save className={`w-4 h-4 mr-2 ${updateMegaCredentialsMutation.isPending ? 'animate-spin' : ''}`} />
+                    {updateMegaCredentialsMutation.isPending ? 'Guardando...' : 'Guardar Credenciais'}
                   </Button>
-                  <Button variant="outline">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Testar Ligação
+                  <Button 
+                    variant="outline"
+                    onClick={() => testMegaConnectionMutation.mutate()}
+                    disabled={testMegaConnectionMutation.isPending || !megaCredentials.email || !megaCredentials.password}
+                    data-testid="button-test-mega-connection"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${testMegaConnectionMutation.isPending ? 'animate-spin' : ''}`} />
+                    {testMegaConnectionMutation.isPending ? 'Testando...' : 'Testar Ligação'}
                   </Button>
                 </div>
               </CardContent>

@@ -451,6 +451,25 @@ export class AdminController {
     }
   }
 
+  static async testMegaConnection(req: Request, res: Response) {
+    try {
+      const { email, password } = megaCredentialsSchema.parse(req.body);
+      
+      const isValid = await AdminService.testMegaConnection(email, password);
+      if (!isValid) {
+        return res.status(400).json({ message: 'Invalid MEGA credentials or connection failed' });
+      }
+
+      res.json({ message: 'MEGA connection test successful' });
+    } catch (error) {
+      console.error('Test MEGA connection error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to test MEGA connection' });
+    }
+  }
+
   static async refreshMegaAccountStatus(req: Request, res: Response) {
     try {
       const adminUser = (req as any).adminUser;
