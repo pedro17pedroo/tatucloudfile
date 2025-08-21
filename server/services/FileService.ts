@@ -14,11 +14,26 @@ export class FileService {
   static async uploadFile(data: UploadFileData): Promise<File> {
     const { userId, file, fileName, filePath, folderId } = data;
 
+    console.log('[FileUpload] Starting upload for:', fileName, 'folderId:', folderId);
+
+    // Build the MEGA folder path based on folderId
+    let megaFolderPath = '';
+    if (folderId) {
+      // Get folder path from database
+      const { FolderService } = await import('./FolderService');
+      const folderPath = await FolderService.getFolderPath(folderId, userId);
+      megaFolderPath = folderPath.map((folder: any) => folder.name).join('/');
+      console.log('[FileUpload] Constructed folder path:', megaFolderPath);
+    }
+
+    const remotePath = megaFolderPath ? `${megaFolderPath}/${fileName}` : fileName;
+    console.log('[FileUpload] Final remote path:', remotePath);
+
     // Upload to MEGA
     const megaFile = await megaService.uploadFile(
       file.buffer,
       fileName,
-      `${filePath}/${fileName}`
+      remotePath
     );
 
     // Save metadata to database
