@@ -2,9 +2,8 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/navigation";
-import { FileUpload } from "@/components/file-upload";
-import { FileGrid } from "@/components/file-grid";
-import { StorageQuota } from "@/components/storage-quota";
+import { EnhancedDashboard } from "@/components/enhanced-dashboard";
+import { AdvancedFileManager } from "@/components/advanced-file-manager";
 import { useQuery } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -48,15 +47,15 @@ export default function Home() {
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6">
-          <StorageQuota />
+        <div className="mb-8">
+          <EnhancedDashboard files={Array.isArray(files) ? files : []} isLoading={filesLoading} />
         </div>
         
-        <div className="mb-6">
-          <FileUpload onUploadComplete={refetchFiles} />
-        </div>
-        
-        <FileGrid files={Array.isArray(files) ? files : []} onFileDeleted={refetchFiles} isLoading={filesLoading} />
+        <AdvancedFileManager 
+          files={Array.isArray(files) ? files : []} 
+          onFileChange={refetchFiles} 
+          isLoading={filesLoading} 
+        />
       </div>
     </div>
   );
