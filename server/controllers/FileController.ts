@@ -51,7 +51,8 @@ export class FileController {
       }
 
       const files = await FileService.getUserFiles(userId);
-      console.log('[FileController] Sample file data:', files[0]);
+      console.log('[FileController] Total files:', files.length);
+      console.log('[FileController] Sample file data:', JSON.stringify(files[0], null, 2));
       
       // Force transformation from folder_id to folderId if needed
       const transformedFiles = files.map(file => ({
@@ -59,7 +60,9 @@ export class FileController {
         folderId: (file as any).folder_id || file.folderId
       }));
       
-      console.log('[FileController] Transformed sample:', transformedFiles[0]);
+      console.log('[FileController] Transformed sample:', JSON.stringify(transformedFiles[0], null, 2));
+      // Always send fresh response to see debug logs
+      res.setHeader('Cache-Control', 'no-cache');
       res.json({ files: transformedFiles });
     } catch (error) {
       console.error('Get files error:', error);
