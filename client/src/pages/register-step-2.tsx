@@ -316,7 +316,7 @@ export default function RegisterStep2({
             </Button>
             <Button
               onClick={handleNext}
-              className="bg-mega-green hover:bg-green-600 text-white"
+              variant="success"
               data-testid="continue-step-button"
             >
               Continuar
