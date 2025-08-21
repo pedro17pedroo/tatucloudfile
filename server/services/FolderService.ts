@@ -32,10 +32,12 @@ export class FolderService {
       megaFolderPath = name;
     }
 
+    console.log('[Folder] Attempting to create folder in MEGA:', megaFolderPath);
+    
     try {
       // Create folder in MEGA first
       const megaFolder = await megaService.createFolder(megaFolderPath);
-      console.log('[Folder] Created folder in MEGA:', megaFolderPath);
+      console.log('[Folder] ✅ Successfully created folder in MEGA:', megaFolderPath);
 
       // Then create in local database
       const newFolder = await storage.createFolder({
@@ -44,9 +46,12 @@ export class FolderService {
         parentId: parentId || null,
       });
 
+      console.log('[Folder] ✅ Successfully created folder locally');
       return newFolder;
-    } catch (megaError) {
-      console.error('[Folder] Failed to create folder in MEGA:', megaError);
+    } catch (megaError: any) {
+      console.error('[Folder] ❌ Failed to create folder in MEGA:', megaError.message || megaError);
+      console.error('[Folder] MEGA Error Stack:', megaError.stack);
+      
       // Still create locally even if MEGA fails
       const newFolder = await storage.createFolder({
         userId,
@@ -54,7 +59,7 @@ export class FolderService {
         parentId: parentId || null,
       });
 
-      console.log('[Folder] Created folder locally only due to MEGA error');
+      console.log('[Folder] ⚠️ Created folder locally only due to MEGA error');
       return newFolder;
     }
   }
@@ -93,7 +98,7 @@ export class FolderService {
 
   static async getFolderPath(folderId: string, userId: string): Promise<any[]> {
     const path: any[] = [];
-    let currentFolderId = folderId;
+    let currentFolderId: string | null = folderId;
 
     while (currentFolderId) {
       const folder = await storage.getFolderById(currentFolderId);
@@ -101,7 +106,7 @@ export class FolderService {
       if (!folder || folder.userId !== userId) break;
 
       path.unshift(folder);
-      currentFolderId = folder.parentId || null;
+      currentFolderId = folder.parentId;
     }
 
     return path;
