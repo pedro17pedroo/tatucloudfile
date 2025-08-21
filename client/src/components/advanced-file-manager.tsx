@@ -24,6 +24,7 @@ import {
   Upload,
   FolderPlus,
   Eye,
+  ExternalLink,
   Move,
   X,
   Folder,
@@ -1049,13 +1050,22 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                     Download
                   </Button>
                 </div>
-                <iframe
-                  src={`/api/portal/files/${showPreview?.id}/download`}
-                  title={showPreview?.fileName || "PDF"}
-                  className="w-full flex-1 border rounded-lg shadow-lg"
-                  loading="lazy"
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                />
+                <div className="w-full flex-1 border rounded-lg shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <div className="text-center p-8">
+                    <FileText className="h-16 w-16 text-red-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-4">Documento PDF</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md">
+                      Este é um documento PDF. Para melhor experiência de visualização, clique no botão abaixo para abrir numa nova aba.
+                    </p>
+                    <Button 
+                      onClick={() => window.open(`/api/portal/files/${showPreview?.id}/download`, '_blank')}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Abrir PDF em Nova Aba
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : showPreview?.fileName?.match(/\.(xlsx?|csv)$/i) ? (
               <div className="text-center p-8 w-full">
