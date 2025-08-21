@@ -597,6 +597,453 @@ export function AdminPanelWithSidebar() {
     }
   ];
 
+  // Helper function to render API Keys content (same as existing 'api' case)
+  const renderApiKeysContent = () => {
+    return (
+      <div className="space-y-6">
+        {/* API Keys Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center">
+              <Key className="w-8 h-8 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Total de Chaves</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {apiKeysData?.total || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center">
+              <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+              <div>
+                <p className="text-sm text-green-600 font-medium">Chaves Ativas</p>
+                <p className="text-2xl font-bold text-green-700">
+                  {apiKeysData?.apiKeys?.filter(k => k.isActive).length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center">
+              <Activity className="w-8 h-8 text-orange-600 mr-3" />
+              <div>
+                <p className="text-sm text-orange-600 font-medium">Usadas Hoje</p>
+                <p className="text-2xl font-bold text-orange-700">
+                  {apiKeysData?.apiKeys?.filter(k => k.lastUsed && new Date(k.lastUsed).toDateString() === new Date().toDateString()).length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center">
+              <BarChart3 className="w-8 h-8 text-purple-600 mr-3" />
+              <div>
+                <p className="text-sm text-purple-600 font-medium">Chamadas Hoje</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {stats?.apiCallsToday || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* API Keys Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Gestão de Chaves API</CardTitle>
+                <CardDescription>
+                  Monitorizar e gerir chaves API dos utilizadores
+                </CardDescription>
+              </div>
+              <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
+                <DialogTrigger asChild>
+                  <Button 
+                    data-testid="button-create-api-key"
+                    onClick={() => setShowApiKeyDialog(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Chave API
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Chave API</DialogTitle>
+                    <DialogDescription>
+                      Criar uma chave API para um utilizador específico
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="api-key-name">Nome da Chave</Label>
+                      <Input 
+                        id="api-key-name" 
+                        placeholder="Ex: Integração Mobile" 
+                        data-testid="input-api-key-name"
+                        value={apiKeyForm.name}
+                        onChange={(e) => setApiKeyForm(prev => ({ ...prev, name: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="api-key-user">Utilizador</Label>
+                      <Select 
+                        value={apiKeyForm.userId}
+                        onValueChange={(value) => setApiKeyForm(prev => ({ ...prev, userId: value }))}
+                      >
+                        <SelectTrigger data-testid="select-api-key-user">
+                          <SelectValue placeholder="Selecionar utilizador" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {usersData?.users?.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.email} ({user.plan?.name || 'Sem plano'})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="api-key-description">Descrição (Opcional)</Label>
+                      <Textarea 
+                        id="api-key-description" 
+                        placeholder="Descrição da finalidade desta chave API..."
+                        rows={3}
+                        data-testid="textarea-api-key-description"
+                        value={apiKeyForm.description}
+                        onChange={(e) => setApiKeyForm(prev => ({ ...prev, description: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      data-testid="button-cancel-api-key"
+                      onClick={() => {
+                        setShowApiKeyDialog(false);
+                        setApiKeyForm({ name: '', userId: '', description: '' });
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      data-testid="button-create-api-key-confirm"
+                      disabled={createApiKeyMutation.isPending || !apiKeyForm.name || !apiKeyForm.userId}
+                      onClick={() => {
+                        if (apiKeyForm.name && apiKeyForm.userId) {
+                          createApiKeyMutation.mutate({
+                            name: apiKeyForm.name,
+                            userId: apiKeyForm.userId,
+                            description: apiKeyForm.description || undefined
+                          });
+                        }
+                      }}
+                    >
+                      {createApiKeyMutation.isPending ? 'Criando...' : 'Criar Chave'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {apiKeysLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-2/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : apiKeysData?.apiKeys?.length === 0 ? (
+              <div className="text-center py-12">
+                <Key className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Nenhuma chave API registada
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  Crie chaves API para permitir que utilizadores acedam aos serviços programaticamente.
+                </p>
+                <Button 
+                  data-testid="button-create-first-api-key"
+                  onClick={() => setShowApiKeyDialog(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar Primeira Chave API
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Input 
+                      placeholder="Pesquisar chaves API..." 
+                      className="w-80"
+                      data-testid="input-search-api-keys"
+                    />
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-40" data-testid="select-filter-api-keys">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="active">Ativas</SelectItem>
+                        <SelectItem value="inactive">Inativas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="outline" size="sm" data-testid="button-refresh-api-keys">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Atualizar
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {apiKeysData?.apiKeys?.map((apiKey) => (
+                    <div key={apiKey.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className={`p-2 rounded-lg ${apiKey.isActive ? 'bg-green-100 dark:bg-green-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                          <Key className={`w-5 h-5 ${apiKey.isActive ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100">{apiKey.name}</h4>
+                          <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                            <span>{apiKey.user?.email}</span>
+                            <span>Criada: {formatDate(apiKey.createdAt)}</span>
+                            {apiKey.lastUsed && <span>Última utilização: {formatDate(apiKey.lastUsed)}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={apiKey.isActive ? "default" : "secondary"}>
+                          {apiKey.isActive ? 'Ativa' : 'Inativa'}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleApiKeyMutation.mutate({ keyId: apiKey.id, isActive: !apiKey.isActive })}
+                          data-testid={`button-toggle-api-key-${apiKey.id}`}
+                        >
+                          {apiKey.isActive ? 'Desativar' : 'Ativar'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => {
+                            if (confirm('Tem a certeza que quer revogar esta chave API? Esta ação não pode ser desfeita.')) {
+                              revokeApiKeyMutation.mutate(apiKey.id);
+                            }
+                          }}
+                          data-testid={`button-revoke-api-key-${apiKey.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Helper function to render API Usage content
+  const renderApiUsageContent = () => {
+    return (
+      <div className="space-y-6">
+        {/* API Usage Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center">
+              <Activity className="w-8 h-8 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Total Chamadas</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {apiUsageData?.total || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center">
+              <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+              <div>
+                <p className="text-sm text-green-600 font-medium">Chamadas Hoje</p>
+                <p className="text-2xl font-bold text-green-700">
+                  {stats?.apiCallsToday || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center">
+              <Zap className="w-8 h-8 text-orange-600 mr-3" />
+              <div>
+                <p className="text-sm text-orange-600 font-medium">Chaves Ativas</p>
+                <p className="text-2xl font-bold text-orange-700">
+                  {apiKeysData?.apiKeys?.filter(k => k.isActive).length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center">
+              <BarChart3 className="w-8 h-8 text-purple-600 mr-3" />
+              <div>
+                <p className="text-sm text-purple-600 font-medium">Tempo Médio</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {apiUsageData?.usage?.length > 0 
+                    ? Math.round(apiUsageData.usage.reduce((acc, curr) => acc + curr.responseTime, 0) / apiUsageData.usage.length) 
+                    : 0}ms
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* API Usage Log */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Log de Uso da API</CardTitle>
+                <CardDescription>
+                  Monitorizar todas as chamadas API em tempo real
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/api-usage'] })}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {apiUsageLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-2/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : apiUsageData?.usage?.length === 0 ? (
+              <div className="text-center py-12">
+                <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Nenhuma atividade registada
+                </h3>
+                <p className="text-gray-500">
+                  As chamadas API aparecerão aqui quando os utilizadores começarem a usar as chaves API.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Input 
+                      placeholder="Pesquisar por utilizador ou endpoint..." 
+                      className="w-80"
+                    />
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="2xx">Sucessos (2xx)</SelectItem>
+                        <SelectItem value="4xx">Erros Cliente (4xx)</SelectItem>
+                        <SelectItem value="5xx">Erros Servidor (5xx)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Utilizador</TableHead>
+                        <TableHead>Chave API</TableHead>
+                        <TableHead>Endpoint</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tempo Resposta</TableHead>
+                        <TableHead>Data/Hora</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {apiUsageData?.usage?.map((usage) => (
+                        <TableRow key={usage.id}>
+                          <TableCell>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                              {usage.user?.email}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {usage.apiKey?.name}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                              {usage.endpoint}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                usage.statusCode >= 200 && usage.statusCode < 300 ? "default" :
+                                usage.statusCode >= 400 && usage.statusCode < 500 ? "destructive" :
+                                "secondary"
+                              }
+                            >
+                              {usage.statusCode}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`text-sm ${
+                              usage.responseTime < 100 ? 'text-green-600' :
+                              usage.responseTime < 500 ? 'text-yellow-600' :
+                              'text-red-600'
+                            }`}>
+                              {usage.responseTime}ms
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDate(usage.createdAt)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -2290,6 +2737,13 @@ export function AdminPanelWithSidebar() {
             </div>
           </div>
         );
+
+      case 'api-keys':
+        // Redirect to existing API case (same functionality)
+        return renderApiKeysContent();
+
+      case 'api-usage':
+        return renderApiUsageContent();
 
       default:
         return (
