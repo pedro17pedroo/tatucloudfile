@@ -95,6 +95,7 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
   
   // Dialogs
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
+  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [showMoveDialog, setShowMoveDialog] = useState(false);
@@ -252,6 +253,39 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
       toast({
         title: "Falha na criação",
         description: error.message || "Erro ao criar pasta",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteFolderMutation = useMutation({
+    mutationFn: async (folderId: string) => {
+      return apiRequest(`/api/portal/folders/${folderId}`, "DELETE");
+    },
+    onSuccess: () => {
+      setDeleteFolderId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/folders"] });
+      toast({
+        title: "Pasta eliminada",
+        description: "A pasta foi eliminada com sucesso",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Não autorizado", 
+          description: "Sessão expirada. A recarregar...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
+      toast({
+        title: "Erro ao eliminar pasta",
+        description: "Não foi possível eliminar a pasta",
         variant: "destructive",
       });
     },
@@ -610,13 +644,15 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                 {currentFolderData.map((folder) => (
                   <div
                     key={folder.id}
-                    className="group border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => {
-                      setCurrentFolder(folder.id);
-                      setFolderPath([...folderPath, folder]);
-                    }}
+                    className="group border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer relative"
                   >
-                    <div className="flex flex-col items-center">
+                    <div 
+                      className="flex flex-col items-center"
+                      onClick={() => {
+                        setCurrentFolder(folder.id);
+                        setFolderPath([...folderPath, folder]);
+                      }}
+                    >
                       <Folder className="h-12 w-12 text-amber-500 mb-3" />
                       <h4 className="text-sm font-medium text-center truncate w-full">
                         {folder.name}
@@ -624,6 +660,34 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                       <p className="text-xs text-gray-400 mt-1">
                         {formatDate(folder.createdAt)}
                       </p>
+                    </div>
+                    
+                    {/* Folder Actions */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteFolderId(folder.id);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}
@@ -715,20 +779,51 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                 {currentFolderData.map((folder) => (
                   <div
                     key={folder.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
-                      setCurrentFolder(folder.id);
-                      setFolderPath([...folderPath, folder]);
-                    }}
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer group"
                   >
-                    <div className="flex items-center space-x-4">
+                    <div 
+                      className="flex items-center space-x-4 flex-1"
+                      onClick={() => {
+                        setCurrentFolder(folder.id);
+                        setFolderPath([...folderPath, folder]);
+                      }}
+                    >
                       <Folder className="h-8 w-8 text-amber-500" />
                       <div>
                         <h4 className="text-sm font-medium">{folder.name}</h4>
                         <p className="text-xs text-gray-500">Pasta • {formatDate(folder.createdAt)}</p>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    
+                    <div className="flex items-center space-x-2">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteFolderId(folder.id);
+                              }}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
                   </div>
                 ))}
 
@@ -882,6 +977,28 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
               className="bg-red-600 hover:bg-red-700"
             >
               {deleteMutation.isPending ? "A eliminar..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Folder Confirmation Dialog */}
+      <AlertDialog open={!!deleteFolderId} onOpenChange={() => setDeleteFolderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Pasta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que pretende eliminar esta pasta? Todos os ficheiros e subpastas contidos serão também eliminados. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteFolderId && deleteFolderMutation.mutate(deleteFolderId)}
+              disabled={deleteFolderMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteFolderMutation.isPending ? "A eliminar..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
