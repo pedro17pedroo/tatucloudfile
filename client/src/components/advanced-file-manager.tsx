@@ -1037,12 +1037,23 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                 </audio>
               </div>
             ) : showPreview?.mimeType?.includes('pdf') || showPreview?.fileName?.endsWith('.pdf') ? (
-              <iframe
-                src={`/api/portal/files/${showPreview?.id}/download`}
-                title={showPreview?.fileName || "PDF"}
-                className="w-full h-[70vh] border-0 rounded-lg shadow-lg"
-                loading="lazy"
-              />
+              <div className="text-center p-8 w-full">
+                <FileText className="h-16 w-16 text-red-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Documento PDF"}</h3>
+                <p className="text-gray-600 mb-4">Documento PDF</p>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Para visualizar este PDF, clique no botão Download para o transferir e abrir no seu computador ou navegador.
+                  </p>
+                  <Button 
+                    onClick={() => window.open(`/api/portal/files/${showPreview?.id}/download`, '_blank')}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download e Visualizar PDF
+                  </Button>
+                </div>
+              </div>
             ) : showPreview?.fileName?.match(/\.(xlsx?|csv)$/i) ? (
               <div className="text-center p-8 w-full">
                 <FileSpreadsheet className="h-16 w-16 text-green-600 mx-auto mb-4" />
