@@ -1050,10 +1050,11 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                   </Button>
                 </div>
                 <iframe
-                  src={`/api/portal/files/${showPreview?.id}/download#toolbar=1&navpanes=1&scrollbar=1`}
+                  src={`/api/portal/files/${showPreview?.id}/download`}
                   title={showPreview?.fileName || "PDF"}
                   className="w-full flex-1 border rounded-lg shadow-lg"
                   loading="lazy"
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                 />
               </div>
             ) : showPreview?.fileName?.match(/\.(xlsx?|csv)$/i) ? (
