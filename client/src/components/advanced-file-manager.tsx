@@ -115,6 +115,8 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
       const data = await response.json();
       return data.folders || [];
     },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnWindowFocus: true, // Refresh when window regains focus
   });
 
   const { data: plans = [] } = useQuery<Plan[]>({
@@ -161,7 +163,9 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
         description: `${variables.file.name} foi carregado com sucesso`,
       });
       
+      // Invalidate both files and folders in case new folders were created
       queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/folders"] });
       
       setTimeout(() => {
         setUploadingFiles(prev => prev.filter(uf => uf.file !== variables.file));
@@ -207,6 +211,9 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
         title: "Ficheiro eliminado",
         description: "O ficheiro foi eliminado com sucesso",
       });
+      // Invalidate both queries for complete reactivity
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/folders"] });
       onFileChange();
       setDeleteFileId(null);
       setSelectedFiles([]);
@@ -270,7 +277,9 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
     },
     onSuccess: () => {
       setDeleteFolderId(null);
+      // Invalidate both queries since deleting folders may affect file organization
       queryClient.invalidateQueries({ queryKey: ["/api/portal/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
       toast({
         title: "Pasta eliminada",
         description: "A pasta foi eliminada com sucesso",

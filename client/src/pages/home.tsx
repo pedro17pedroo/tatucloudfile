@@ -37,6 +37,8 @@ export default function Home() {
       return data.files || [];
     },
     enabled: isAuthenticated,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnWindowFocus: true, // Refresh when window regains focus
   });
 
   if (isLoading || !isAuthenticated) {

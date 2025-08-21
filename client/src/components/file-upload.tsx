@@ -80,8 +80,9 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         description: `${file.name} has been uploaded successfully`,
       });
       
-      // Invalidate queries to refresh file list immediately
+      // Invalidate both files and folders to ensure complete reactivity
       queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/folders"] });
       
       // Remove completed file after a delay
       setTimeout(() => {
