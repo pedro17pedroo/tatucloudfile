@@ -580,13 +580,7 @@ export function AdminPanelWithSidebar() {
         { id: 'api-usage', label: 'Uso da API', icon: Activity, description: 'Monitorizar uso das APIs' }
       ]
     },
-    {
-      title: "Desenvolvimento & API",
-      items: [
-        { id: 'api', label: 'Chaves API', icon: Key, description: 'Gerir chaves de API' },
-        { id: 'api-usage', label: 'Uso da API', icon: Zap, description: 'Monitorizar uso da API' }
-      ]
-    },
+
     {
       title: "Infraestrutura",
       items: [
