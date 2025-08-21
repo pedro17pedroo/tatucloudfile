@@ -30,7 +30,12 @@ import {
   FolderOpen,
   ChevronRight,
   Home,
-  MoreHorizontal
+  MoreHorizontal,
+  Play,
+  Music,
+  FileSpreadsheet,
+  Presentation,
+  FileVideo
 } from "lucide-react";
 import {
   AlertDialog,
@@ -327,7 +332,12 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
 
   const getFileIcon = (mimeType: string | null, fileName: string) => {
     if (mimeType?.startsWith('image/')) return <Image className="h-8 w-8 text-purple-600" />;
+    if (mimeType?.startsWith('video/')) return <FileVideo className="h-8 w-8 text-red-500" />;
+    if (mimeType?.startsWith('audio/')) return <Music className="h-8 w-8 text-green-600" />;
     if (mimeType?.includes('pdf') || fileName.endsWith('.pdf')) return <FileText className="h-8 w-8 text-red-600" />;
+    if (mimeType?.includes('spreadsheet') || fileName.match(/\.(xlsx?|csv)$/i)) return <FileSpreadsheet className="h-8 w-8 text-green-700" />;
+    if (mimeType?.includes('presentation') || fileName.match(/\.(pptx?)$/i)) return <Presentation className="h-8 w-8 text-orange-600" />;
+    if (mimeType?.includes('document') || fileName.match(/\.(docx?)$/i)) return <FileText className="h-8 w-8 text-blue-700" />;
     if (mimeType?.includes('zip') || mimeType?.includes('archive')) return <Archive className="h-8 w-8 text-orange-600" />;
     return <File className="h-8 w-8 text-blue-600" />;
   };
@@ -367,7 +377,14 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
 
   // Preview file
   const previewFile = (file: any) => {
-    if (file.mimeType?.startsWith('image/')) {
+    const isPreviewable = 
+      file.mimeType?.startsWith('image/') ||
+      file.mimeType?.startsWith('video/') ||
+      file.mimeType?.startsWith('audio/') ||
+      file.mimeType?.includes('pdf') ||
+      file.fileName.match(/\.(pdf|jpg|jpeg|png|gif|mp4|mp3|wav|xlsx?|pptx?|docx?)$/i);
+    
+    if (isPreviewable) {
       setShowPreview(file);
     } else {
       toast({
@@ -733,6 +750,13 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                           size="sm"
                           variant="ghost"
                           className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const link = document.createElement('a');
+                            link.href = `/api/portal/files/${file.id}/download`;
+                            link.download = file.fileName;
+                            link.click();
+                          }}
                           title="Download"
                         >
                           <Download className="h-4 w-4" />
@@ -857,7 +881,17 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = document.createElement('a');
+                          link.href = `/api/portal/files/${file.id}/download`;
+                          link.download = file.fileName;
+                          link.click();
+                        }}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                       <DropdownMenu>
@@ -939,21 +973,115 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
 
       {/* File Preview Dialog */}
       <Dialog open={!!showPreview} onOpenChange={() => setShowPreview(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>{showPreview?.fileName}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-semibold truncate">
+                {showPreview?.fileName || "Ficheiro"}
+              </DialogTitle>
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (showPreview) {
+                      const link = document.createElement('a');
+                      link.href = `/api/portal/files/${showPreview.id}/download`;
+                      link.download = showPreview.fileName;
+                      link.click();
+                    }
+                  }}
+                  className="flex items-center space-x-1"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowPreview(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="flex justify-center">
+          
+          <div className="flex justify-center items-center min-h-[400px]">
             {showPreview?.mimeType?.startsWith('image/') ? (
               <img
-                src={`/api/portal/files/${showPreview.id}/download`}
-                alt={showPreview.fileName}
-                className="max-w-full max-h-[60vh] object-contain"
+                src={`/api/portal/files/${showPreview?.id}/download`}
+                alt={showPreview?.fileName || "Imagem"}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
               />
+            ) : showPreview?.mimeType?.startsWith('video/') ? (
+              <video
+                controls
+                className="max-w-full max-h-[70vh] rounded-lg shadow-lg"
+                preload="metadata"
+              >
+                <source src={`/api/portal/files/${showPreview?.id}/download`} type={showPreview?.mimeType} />
+                O seu navegador não suporta reprodução de vídeo.
+              </video>
+            ) : showPreview?.mimeType?.startsWith('audio/') ? (
+              <div className="text-center p-8">
+                <Music className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Ficheiro de áudio"}</h3>
+                <audio
+                  controls
+                  className="w-full max-w-md"
+                  preload="metadata"
+                >
+                  <source src={`/api/portal/files/${showPreview?.id}/download`} type={showPreview?.mimeType} />
+                  O seu navegador não suporta reprodução de áudio.
+                </audio>
+              </div>
+            ) : showPreview?.mimeType?.includes('pdf') || showPreview?.fileName?.endsWith('.pdf') ? (
+              <iframe
+                src={`/api/portal/files/${showPreview?.id}/download`}
+                title={showPreview?.fileName || "PDF"}
+                className="w-full h-[70vh] border-0 rounded-lg shadow-lg"
+                loading="lazy"
+              />
+            ) : showPreview?.fileName?.match(/\.(xlsx?|csv)$/i) ? (
+              <div className="text-center p-8 w-full">
+                <FileSpreadsheet className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Ficheiro Excel"}</h3>
+                <p className="text-gray-600 mb-4">Pré-visualização de ficheiros Excel</p>
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + `/api/portal/files/${showPreview?.id}/download`)}`}
+                  className="w-full h-[60vh] border rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+            ) : showPreview?.fileName?.match(/\.(pptx?)$/i) ? (
+              <div className="text-center p-8 w-full">
+                <Presentation className="h-16 w-16 text-orange-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Apresentação"}</h3>
+                <p className="text-gray-600 mb-4">Pré-visualização de apresentação</p>
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + `/api/portal/files/${showPreview?.id}/download`)}`}
+                  className="w-full h-[60vh] border rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+            ) : showPreview?.fileName?.match(/\.(docx?)$/i) ? (
+              <div className="text-center p-8 w-full">
+                <FileText className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Documento"}</h3>
+                <p className="text-gray-600 mb-4">Pré-visualização de documento</p>
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + `/api/portal/files/${showPreview?.id}/download`)}`}
+                  className="w-full h-[60vh] border rounded-lg"
+                  loading="lazy"
+                />
+              </div>
             ) : (
               <div className="text-center p-8">
                 <File className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p>Pré-visualização não disponível</p>
+                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Ficheiro"}</h3>
+                <p className="text-gray-600">Pré-visualização não disponível para este tipo de ficheiro</p>
+                <p className="text-sm text-gray-500 mt-2">Use o botão Download para transferir o ficheiro</p>
               </div>
             )}
           </div>
