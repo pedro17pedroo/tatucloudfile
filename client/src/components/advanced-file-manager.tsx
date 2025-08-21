@@ -1037,22 +1037,24 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                 </audio>
               </div>
             ) : showPreview?.mimeType?.includes('pdf') || showPreview?.fileName?.endsWith('.pdf') ? (
-              <div className="text-center p-8 w-full">
-                <FileText className="h-16 w-16 text-red-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Documento PDF"}</h3>
-                <p className="text-gray-600 mb-4">Documento PDF</p>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Para visualizar este PDF, clique no botão Download para o transferir e abrir no seu computador ou navegador.
-                  </p>
+              <div className="w-full h-[70vh] flex flex-col">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <span className="text-sm text-gray-600">Visualização PDF</span>
                   <Button 
+                    size="sm"
                     onClick={() => window.open(`/api/portal/files/${showPreview?.id}/download`, '_blank')}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download e Visualizar PDF
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
                   </Button>
                 </div>
+                <iframe
+                  src={`/api/portal/files/${showPreview?.id}/download#toolbar=1&navpanes=1&scrollbar=1`}
+                  title={showPreview?.fileName || "PDF"}
+                  className="w-full flex-1 border rounded-lg shadow-lg"
+                  loading="lazy"
+                />
               </div>
             ) : showPreview?.fileName?.match(/\.(xlsx?|csv)$/i) ? (
               <div className="text-center p-8 w-full">

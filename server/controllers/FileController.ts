@@ -95,6 +95,12 @@ export class FileController {
       // Add range request support for video/audio streaming
       res.setHeader('Accept-Ranges', 'bytes');
       
+      // Special headers for PDF files to enable iframe embedding
+      if (mimeType.includes('pdf')) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+      }
+      
       // Handle range requests for video/audio seeking
       const range = req.headers.range;
       if (range && (mimeType.startsWith('video/') || mimeType.startsWith('audio/'))) {
