@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Navigation } from "@/components/navigation";
 
 interface PaymentRecord {
   id: string;
@@ -39,16 +40,24 @@ export default function Billing() {
   });
 
   // Fetch billing summary
-  const { data: billingSummary } = useQuery({
+  const { data: billingSummary } = useQuery<{
+    totalSpent: string;
+    currentMonth: string;
+    nextPayment: string;
+  }>({
     queryKey: ["/api/billing/summary"],
   });
 
   const handleDownloadReceipt = async (paymentId: string, invoiceNumber: string) => {
     try {
-      const response = await apiRequest(`/api/billing/receipt/${paymentId}`, "GET");
+      const response = await fetch(`/api/billing/receipt/${paymentId}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
       
-      // Create download link
-      const blob = new Blob([response], { type: 'application/pdf' });
+      if (!response.ok) throw new Error('Failed to download receipt');
+      
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -134,12 +143,15 @@ export default function Billing() {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-mega-text">Histórico de Pagamentos</h1>
-          <p className="text-gray-600 mt-2">Consulte o seu histórico de pagamentos e descarregue recibos</p>
-        </div>
+    <div className="min-h-screen bg-tatu-light">
+      <Navigation />
+      
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-mega-text">Histórico de Pagamentos</h1>
+            <p className="text-gray-600 mt-2">Consulte o seu histórico de pagamentos e descarregue recibos</p>
+          </div>
 
         {/* Billing Summary */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -302,6 +314,7 @@ export default function Billing() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
