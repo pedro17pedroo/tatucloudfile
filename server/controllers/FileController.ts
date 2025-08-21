@@ -90,7 +90,23 @@ export class FileController {
       // Enable CORS for preview functionality
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
+      
+      // Add range request support for video/audio streaming
+      res.setHeader('Accept-Ranges', 'bytes');
+      
+      // Handle range requests for video/audio seeking
+      const range = req.headers.range;
+      if (range && (mimeType.startsWith('video/') || mimeType.startsWith('audio/'))) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : size - 1;
+        const chunksize = (end - start) + 1;
+        
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
+        res.setHeader('Content-Length', chunksize.toString());
+      }
 
       // Pipe the stream to response
       stream.pipe(res);

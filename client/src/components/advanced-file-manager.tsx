@@ -1047,34 +1047,55 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
               <div className="text-center p-8 w-full">
                 <FileSpreadsheet className="h-16 w-16 text-green-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Ficheiro Excel"}</h3>
-                <p className="text-gray-600 mb-4">Pré-visualização de ficheiros Excel</p>
-                <iframe
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + `/api/portal/files/${showPreview?.id}/download`)}`}
-                  className="w-full h-[60vh] border rounded-lg"
-                  loading="lazy"
-                />
+                <p className="text-gray-600 mb-4">Ficheiro Excel/CSV</p>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Para visualizar este ficheiro Excel, clique no botão Download para o transferir e abrir no seu computador.
+                  </p>
+                  <Button 
+                    onClick={() => window.open(`/api/portal/files/${showPreview?.id}/download`, '_blank')}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download e Visualizar
+                  </Button>
+                </div>
               </div>
             ) : showPreview?.fileName?.match(/\.(pptx?)$/i) ? (
               <div className="text-center p-8 w-full">
                 <Presentation className="h-16 w-16 text-orange-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Apresentação"}</h3>
-                <p className="text-gray-600 mb-4">Pré-visualização de apresentação</p>
-                <iframe
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + `/api/portal/files/${showPreview?.id}/download`)}`}
-                  className="w-full h-[60vh] border rounded-lg"
-                  loading="lazy"
-                />
+                <p className="text-gray-600 mb-4">Apresentação PowerPoint</p>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Para visualizar esta apresentação, clique no botão Download para a transferir e abrir no seu computador.
+                  </p>
+                  <Button 
+                    onClick={() => window.open(`/api/portal/files/${showPreview?.id}/download`, '_blank')}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download e Visualizar
+                  </Button>
+                </div>
               </div>
             ) : showPreview?.fileName?.match(/\.(docx?)$/i) ? (
               <div className="text-center p-8 w-full">
                 <FileText className="h-16 w-16 text-blue-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-4">{showPreview?.fileName || "Documento"}</h3>
-                <p className="text-gray-600 mb-4">Pré-visualização de documento</p>
-                <iframe
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + `/api/portal/files/${showPreview?.id}/download`)}`}
-                  className="w-full h-[60vh] border rounded-lg"
-                  loading="lazy"
-                />
+                <p className="text-gray-600 mb-4">Documento Word</p>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Para visualizar este documento, clique no botão Download para o transferir e abrir no seu computador.
+                  </p>
+                  <Button 
+                    onClick={() => window.open(`/api/portal/files/${showPreview?.id}/download`, '_blank')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download e Visualizar
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="text-center p-8">
