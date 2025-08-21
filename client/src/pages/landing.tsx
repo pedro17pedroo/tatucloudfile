@@ -240,7 +240,7 @@ export default function Landing() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
                 <Cloud className="h-8 w-8 text-mega-red mr-3" />
-                <span className="text-xl font-bold">MEGA File Manager</span>
+                <span className="text-xl font-bold">TATU File Manager</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 The most secure and reliable way to integrate MEGA cloud storage into your applications.
