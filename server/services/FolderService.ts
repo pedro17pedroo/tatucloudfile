@@ -101,7 +101,7 @@ export class FolderService {
     let currentFolderId: string | null = folderId;
 
     while (currentFolderId) {
-      const folder = await storage.getFolderById(currentFolderId);
+      const folder: any = await storage.getFolderById(currentFolderId);
 
       if (!folder || folder.userId !== userId) break;
 
