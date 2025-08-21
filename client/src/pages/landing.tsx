@@ -135,7 +135,7 @@ export default function Landing() {
               <Button
                 variant="outline"
                 onClick={() => navigate("/register")}
-                className="text-tatu-green border-tatu-green hover:bg-tatu-green/5"
+                className="text-tatu-green border-tatu-green hover:bg-tatu-green hover:text-white"
                 data-testid="register-nav-button"
               >
                 Criar conta
