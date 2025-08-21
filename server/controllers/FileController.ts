@@ -51,6 +51,7 @@ export class FileController {
       }
 
       const files = await FileService.getUserFiles(userId);
+      console.log('[FileController] Sample file data:', files[0]);
       res.json({ files });
     } catch (error) {
       console.error('Get files error:', error);
