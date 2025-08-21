@@ -1,4 +1,5 @@
 import { storage } from '../storage';
+import { megaService } from './megaService';
 
 export interface CreateFolderParams {
   userId: string;
@@ -21,13 +22,41 @@ export class FolderService {
       throw new Error('Folder with this name already exists in this location');
     }
 
-    const newFolder = await storage.createFolder({
-      userId,
-      name,
-      parentId: parentId || null,
-    });
+    // Build the folder path for MEGA
+    let megaFolderPath = '';
+    if (parentId) {
+      // Get the parent folder path
+      const parentPath = await this.getFolderPath(parentId, userId);
+      megaFolderPath = parentPath.map(folder => folder.name).join('/') + '/' + name;
+    } else {
+      megaFolderPath = name;
+    }
 
-    return newFolder;
+    try {
+      // Create folder in MEGA first
+      const megaFolder = await megaService.createFolder(megaFolderPath);
+      console.log('[Folder] Created folder in MEGA:', megaFolderPath);
+
+      // Then create in local database
+      const newFolder = await storage.createFolder({
+        userId,
+        name,
+        parentId: parentId || null,
+      });
+
+      return newFolder;
+    } catch (megaError) {
+      console.error('[Folder] Failed to create folder in MEGA:', megaError);
+      // Still create locally even if MEGA fails
+      const newFolder = await storage.createFolder({
+        userId,
+        name,
+        parentId: parentId || null,
+      });
+
+      console.log('[Folder] Created folder locally only due to MEGA error');
+      return newFolder;
+    }
   }
 
   static async getUserFolders(userId: string) {
@@ -72,7 +101,7 @@ export class FolderService {
       if (!folder || folder.userId !== userId) break;
 
       path.unshift(folder);
-      currentFolderId = folder.parentId;
+      currentFolderId = folder.parentId || null;
     }
 
     return path;
