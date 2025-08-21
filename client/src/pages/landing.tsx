@@ -221,9 +221,7 @@ export default function Landing() {
           <h2 className="text-4xl font-bold text-white mb-6">
             Ready to get started?
           </h2>
-          <p className="text-xl text-green-100 mb-8">
-            Join thousands of developers already building with our MEGA File Manager API
-          </p>
+          <p className="text-xl text-green-100 mb-8">Join thousands of developers already building with our TATU File Manager API</p>
           <Button
             onClick={() => navigate("/register")}
             className="bg-white text-mega-green hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
