@@ -636,6 +636,7 @@ export class MemoryStorage implements IStorage {
     const newFile: File = {
       id: randomUUID(),
       userId: file.userId,
+      folderId: file.folderId || null,
       megaFileId: file.megaFileId,
       fileName: file.fileName,
       fileSize: file.fileSize,

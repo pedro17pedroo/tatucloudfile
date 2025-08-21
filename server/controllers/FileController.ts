@@ -20,12 +20,7 @@ export class FileController {
         return res.status(400).json({ message: 'No file provided' });
       }
 
-      console.log('[FileController] Upload request body:', req.body);
-      console.log('[FileController] File:', req.file.originalname);
-
       const { fileName, filePath, folderId } = uploadSchema.parse(req.body);
-      
-      console.log('[FileController] Parsed data:', { fileName, filePath, folderId });
 
       const file = await FileService.uploadFile({
         userId,
