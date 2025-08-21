@@ -2,8 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import { megaService } from '../../services/megaService';
 import { db } from '../../db';
-import { apiKeys, files } from '@shared/schema';
-import { eq, and, or, like } from 'drizzle-orm';
+import { apiKeys, files, folders } from '@shared/schema';
+import { eq, and, or, like, isNull } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
 const apiRouter = Router();
@@ -50,6 +50,43 @@ async function authenticateApiKey(req: any, res: any, next: any) {
 // Apply API key auth to all routes
 apiRouter.use(authenticateApiKey);
 
+// Helper function to find or create folder by path
+async function findOrCreateFolderByPath(userId: string, folderPath: string) {
+  if (!folderPath || folderPath === '/' || folderPath === '') {
+    return null; // Root folder
+  }
+  
+  // Remove leading/trailing slashes and split path
+  const pathParts = folderPath.replace(/^\/+|\/+$/g, '').split('/').filter(part => part);
+  let currentParentId = null;
+  
+  // For each folder in the path, find or create it
+  for (const folderName of pathParts) {
+    // Check if folder exists
+    let existingFolder = await db.select().from(folders).where(
+      and(
+        eq(folders.userId, userId),
+        eq(folders.name, folderName),
+        currentParentId ? eq(folders.parentId, currentParentId) : isNull(folders.parentId)
+      )
+    );
+    
+    if (existingFolder.length === 0) {
+      // Create the folder
+      const newFolder: any = await db.insert(folders).values({
+        userId: userId,
+        name: folderName,
+        parentId: currentParentId,
+      }).returning();
+      currentParentId = newFolder[0].id;
+    } else {
+      currentParentId = existingFolder[0].id;
+    }
+  }
+  
+  return currentParentId;
+}
+
 // File Upload
 apiRouter.post('/files/upload', upload.single('file'), async (req: any, res) => {
   try {
@@ -61,12 +98,20 @@ apiRouter.post('/files/upload', upload.single('file'), async (req: any, res) => 
     const fileBuffer = req.file.buffer;
     const remotePath = req.body.path || `/${fileName}`;
 
+    // Extract folder path from remotePath (everything except the filename)
+    const pathParts = remotePath.split('/');
+    const folderPath = pathParts.slice(0, -1).join('/');
+    
+    // Find or create the folder structure
+    const folderId = await findOrCreateFolderByPath(req.apiUser.userId, folderPath);
+
     // Upload to MEGA
     const result = await megaService.uploadFile(fileBuffer, fileName, remotePath);
 
-    // Store file metadata
+    // Store file metadata with correct folderId
     const fileRecord = await db.insert(files).values({
       userId: req.apiUser.userId,
+      folderId: folderId, // Now correctly set!
       fileName: fileName,
       fileSize: req.file.size.toString(),
       mimeType: req.file.mimetype,
@@ -83,7 +128,9 @@ apiRouter.post('/files/upload', upload.single('file'), async (req: any, res) => 
         name: file.fileName,
         size: parseInt(file.fileSize),
         uploadedAt: file.uploadedAt,
-        downloadUrl: `/api/v1/files/${file.id}/download`
+        downloadUrl: `/api/v1/files/${file.id}/download`,
+        folderId: file.folderId,
+        folderPath: folderPath || '/'
       }
     });
   } catch (error) {
@@ -295,8 +342,12 @@ apiRouter.post('/files/upload-multiple', upload.array('files'), async (req: any,
       const megaResult = megaResults[i];
       const upload = uploads[i];
       
+      // Find or create folder for this file
+      const fileFolderId = await findOrCreateFolderByPath(req.apiUser.userId, megaResult.folderPath);
+      
       const fileRecord = await db.insert(files).values({
         userId: req.apiUser.userId,
+        folderId: fileFolderId, // Now correctly set!
         fileName: megaResult.name,
         fileSize: upload.size.toString(),
         mimeType: upload.mimeType,
