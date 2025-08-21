@@ -10,6 +10,7 @@ import { User, Mail, Phone, Lock, Save, Eye, EyeOff } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Navigation } from "@/components/navigation";
 import type { User as UserType } from "@shared/schema";
 
 export default function Profile() {
@@ -134,14 +135,16 @@ export default function Profile() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-mega-text">Meu Perfil</h1>
-          <p className="text-gray-600 mt-2">Gerir as suas informações pessoais e configurações de segurança</p>
-        </div>
+    <div className="min-h-screen bg-tatu-light">
+      <Navigation />
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-mega-text">Meu Perfil</h1>
+            <p className="text-gray-600 mt-2">Gerir as suas informações pessoais e configurações de segurança</p>
+          </div>
 
-        <Tabs defaultValue="personal" className="space-y-6">
+          <Tabs defaultValue="personal" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="personal" data-testid="personal-tab">
               <User className="h-4 w-4 mr-2" />
@@ -361,7 +364,8 @@ export default function Profile() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
