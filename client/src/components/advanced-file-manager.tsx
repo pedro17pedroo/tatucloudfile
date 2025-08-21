@@ -306,6 +306,7 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.fileName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFolder = currentFolder ? file.folderId === currentFolder : !file.folderId;
+    console.log('[Frontend Debug] File:', file.fileName, 'folderId:', file.folderId, 'currentFolder:', currentFolder, 'matches:', matchesFolder);
     return matchesSearch && matchesFolder;
   });
 
