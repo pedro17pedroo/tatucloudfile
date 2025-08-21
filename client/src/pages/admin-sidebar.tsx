@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
   AlertTriangle, CheckCircle, XCircle, Users, CreditCard, Key, Database, Settings, 
@@ -908,7 +909,7 @@ export function AdminPanelWithSidebar() {
               <div>
                 <p className="text-sm text-purple-600 font-medium">Tempo Médio</p>
                 <p className="text-2xl font-bold text-purple-700">
-                  {apiUsageData?.usage?.length > 0 
+                  {apiUsageData?.usage && apiUsageData.usage.length > 0 
                     ? Math.round(apiUsageData.usage.reduce((acc, curr) => acc + curr.responseTime, 0) / apiUsageData.usage.length) 
                     : 0}ms
                 </p>
@@ -1038,6 +1039,559 @@ export function AdminPanelWithSidebar() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Helper function to render Audit Logs content
+  const renderAuditLogsContent = () => {
+    return (
+      <div className="space-y-6">
+        {/* Audit Logs Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center">
+              <FileText className="w-8 h-8 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Total de Logs</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {auditLogsData?.total || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center">
+              <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+              <div>
+                <p className="text-sm text-green-600 font-medium">Logs Hoje</p>
+                <p className="text-2xl font-bold text-green-700">
+                  {auditLogsData?.logs?.filter(log => 
+                    new Date(log.createdAt).toDateString() === new Date().toDateString()
+                  ).length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center">
+              <AlertTriangle className="w-8 h-8 text-orange-600 mr-3" />
+              <div>
+                <p className="text-sm text-orange-600 font-medium">Ações Críticas</p>
+                <p className="text-2xl font-bold text-orange-700">
+                  {auditLogsData?.logs?.filter(log => 
+                    ['delete', 'revoke', 'suspend'].some(action => log.action.toLowerCase().includes(action))
+                  ).length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center">
+              <Users className="w-8 h-8 text-purple-600 mr-3" />
+              <div>
+                <p className="text-sm text-purple-600 font-medium">Admins Ativos</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {new Set(auditLogsData?.logs?.map(log => log.adminUserId)).size || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Audit Logs Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Logs de Auditoria</CardTitle>
+                <CardDescription>
+                  Registo completo de todas as ações administrativas
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/audit-logs'] })}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {auditLogsLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-2/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : auditLogsData?.logs?.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Nenhum log de auditoria
+                </h3>
+                <p className="text-gray-500">
+                  Os logs de auditoria aparecerão aqui quando os admins realizarem ações no sistema.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Input 
+                      placeholder="Pesquisar por admin ou ação..." 
+                      className="w-80"
+                    />
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as Ações</SelectItem>
+                        <SelectItem value="create">Criação</SelectItem>
+                        <SelectItem value="update">Atualização</SelectItem>
+                        <SelectItem value="delete">Eliminação</SelectItem>
+                        <SelectItem value="login">Login</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select defaultValue="today">
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Hoje</SelectItem>
+                        <SelectItem value="week">Esta Semana</SelectItem>
+                        <SelectItem value="month">Este Mês</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Administrador</TableHead>
+                        <TableHead>Ação</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Detalhes</TableHead>
+                        <TableHead>IP</TableHead>
+                        <TableHead>Data/Hora</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {auditLogsData?.logs?.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                              {log.admin?.email || 'Sistema'}
+                            </div>
+                            {log.admin?.firstName && log.admin?.lastName && (
+                              <div className="text-sm text-gray-500">
+                                {log.admin.firstName} {log.admin.lastName}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                log.action.toLowerCase().includes('delete') || log.action.toLowerCase().includes('revoke') ? "destructive" :
+                                log.action.toLowerCase().includes('create') ? "default" :
+                                "secondary"
+                              }
+                            >
+                              {log.action}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {log.targetType}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-xs">
+                              {log.newValues && (
+                                <div className="text-sm">
+                                  <span className="font-medium">Novo:</span> {log.newValues.length > 50 ? log.newValues.substring(0, 50) + '...' : log.newValues}
+                                </div>
+                              )}
+                              {log.oldValues && (
+                                <div className="text-sm text-gray-500">
+                                  <span className="font-medium">Anterior:</span> {log.oldValues.length > 50 ? log.oldValues.substring(0, 50) + '...' : log.oldValues}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                              {log.ipAddress || 'N/A'}
+                            </code>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDate(log.createdAt)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Export Options */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Exportar Logs</CardTitle>
+            <CardDescription>
+              Exportar logs de auditoria para análise externa
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4">
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar CSV
+              </Button>
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar JSON
+              </Button>
+              <Select defaultValue="week">
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Hoje</SelectItem>
+                  <SelectItem value="week">Esta Semana</SelectItem>
+                  <SelectItem value="month">Este Mês</SelectItem>
+                  <SelectItem value="all">Todos os Logs</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Helper function to render Security content
+  const renderSecurityContent = () => {
+    return (
+      <div className="space-y-6">
+        {/* Security Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center">
+              <Shield className="w-8 h-8 text-green-600 mr-3" />
+              <div>
+                <p className="text-sm text-green-600 font-medium">Estado do Sistema</p>
+                <p className="text-2xl font-bold text-green-700">
+                  Seguro
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center">
+              <Key className="w-8 h-8 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Sessões Ativas</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {usersData?.users?.filter(u => u.totalApiCalls > 0).length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center">
+              <AlertTriangle className="w-8 h-8 text-orange-600 mr-3" />
+              <div>
+                <p className="text-sm text-orange-600 font-medium">Tentativas Falha</p>
+                <p className="text-2xl font-bold text-orange-700">
+                  0
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center">
+              <Activity className="w-8 h-8 text-purple-600 mr-3" />
+              <div>
+                <p className="text-sm text-purple-600 font-medium">Rate Limiting</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  Ativo
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Authentication Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Configurações de Autenticação</CardTitle>
+            <CardDescription>
+              Gerir políticas de autenticação e segurança
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Autenticação de Dois Fatores (2FA)</Label>
+                  <p className="text-sm text-gray-500">Exigir 2FA para todos os administradores</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Badge variant="default">Ativo</Badge>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Sessões Simultâneas</Label>
+                  <p className="text-sm text-gray-500">Permitir múltiplas sessões por utilizador</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Badge variant="secondary">Permitido</Badge>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Expiração de Sessão</Label>
+                  <p className="text-sm text-gray-500">Tempo limite para sessões inativas</p>
+                </div>
+                <Select defaultValue="24h">
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1h">1 hora</SelectItem>
+                    <SelectItem value="8h">8 horas</SelectItem>
+                    <SelectItem value="24h">24 horas</SelectItem>
+                    <SelectItem value="7d">7 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Login com OAuth</Label>
+                  <p className="text-sm text-gray-500">Permitir login através do Replit OAuth</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Badge variant="default">Ativo</Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* API Security Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Segurança da API</CardTitle>
+            <CardDescription>
+              Configurações de segurança para as APIs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Rate Limiting</Label>
+                  <p className="text-sm text-gray-500">Limitar número de chamadas por minuto</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Input type="number" defaultValue="60" className="w-20" />
+                  <span className="text-sm text-gray-500">req/min</span>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">CORS Origins</Label>
+                  <p className="text-sm text-gray-500">Domínios autorizados para chamadas API</p>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configurar
+                </Button>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Logs de API</Label>
+                  <p className="text-sm text-gray-500">Registar todas as chamadas API</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Badge variant="default">Ativo</Badge>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Validação de IP</Label>
+                  <p className="text-sm text-gray-500">Restringir acesso por endereço IP</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch />
+                  <Badge variant="secondary">Inativo</Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security Monitoring */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monitorização de Segurança</CardTitle>
+            <CardDescription>
+              Alertas e notificações de segurança
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Alertas de Login Suspeito</Label>
+                  <p className="text-sm text-gray-500">Notificar tentativas de login anómalas</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Badge variant="default">Ativo</Badge>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Notificações por Email</Label>
+                  <p className="text-sm text-gray-500">Enviar alertas de segurança por email</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Input type="email" placeholder="admin@exemplo.com" className="w-48" />
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Bloqueio Automático</Label>
+                  <p className="text-sm text-gray-500">Bloquear IPs após tentativas falhadas</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Input type="number" defaultValue="5" className="w-16" />
+                  <span className="text-sm text-gray-500">tentativas</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Backup & Recovery */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Backup e Recuperação</CardTitle>
+            <CardDescription>
+              Configurações de backup automático
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Backup Automático</Label>
+                  <p className="text-sm text-gray-500">Criar backups automáticos da base de dados</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch defaultChecked />
+                  <Select defaultValue="daily">
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hourly">Hora a hora</SelectItem>
+                      <SelectItem value="daily">Diário</SelectItem>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Retenção de Backups</Label>
+                  <p className="text-sm text-gray-500">Tempo de armazenamento dos backups</p>
+                </div>
+                <Select defaultValue="30d">
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7d">7 dias</SelectItem>
+                    <SelectItem value="30d">30 dias</SelectItem>
+                    <SelectItem value="90d">90 dias</SelectItem>
+                    <SelectItem value="1y">1 ano</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Último Backup</Label>
+                  <p className="text-sm text-gray-500">Data do último backup realizado</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="default">Hoje, 02:00</Badge>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Criar Backup
+                  </Button>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -2744,6 +3298,12 @@ export function AdminPanelWithSidebar() {
 
       case 'api-usage':
         return renderApiUsageContent();
+
+      case 'logs':
+        return renderAuditLogsContent();
+
+      case 'security':
+        return renderSecurityContent();
 
       default:
         return (
