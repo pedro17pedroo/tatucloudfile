@@ -52,7 +52,15 @@ export class FileController {
 
       const files = await FileService.getUserFiles(userId);
       console.log('[FileController] Sample file data:', files[0]);
-      res.json({ files });
+      
+      // Force transformation from folder_id to folderId if needed
+      const transformedFiles = files.map(file => ({
+        ...file,
+        folderId: (file as any).folder_id || file.folderId
+      }));
+      
+      console.log('[FileController] Transformed sample:', transformedFiles[0]);
+      res.json({ files: transformedFiles });
     } catch (error) {
       console.error('Get files error:', error);
       res.status(500).json({ message: 'Failed to get files' });
