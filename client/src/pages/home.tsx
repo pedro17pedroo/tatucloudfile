@@ -28,6 +28,14 @@ export default function Home() {
 
   const { data: files, isLoading: filesLoading, refetch: refetchFiles } = useQuery({
     queryKey: ["/api/portal/files"],
+    queryFn: async () => {
+      const response = await fetch("/api/portal/files", { 
+        credentials: 'include' 
+      });
+      if (!response.ok) throw new Error('Failed to fetch files');
+      const data = await response.json();
+      return data.files || [];
+    },
     enabled: isAuthenticated,
   });
 
