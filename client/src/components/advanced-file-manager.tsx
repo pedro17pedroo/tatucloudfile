@@ -100,8 +100,15 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showPreview, setShowPreview] = useState<any>(null);
 
-  // Mock folders data (in real app, this would come from API)
-  const [folders] = useState<Folder[]>([]);
+  // Fetch folders data from API
+  const { data: folders = [] } = useQuery<Folder[]>({
+    queryKey: ["/api/portal/folders"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/portal/folders", "GET");
+      const data = await response.json();
+      return data.folders || [];
+    },
+  });
 
   const { data: plans = [] } = useQuery<Plan[]>({
     queryKey: ["/api/auth/plans"],
@@ -212,6 +219,39 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
       toast({
         title: "Falha na eliminação",
         description: "Erro ao eliminar ficheiro",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createFolderMutation = useMutation({
+    mutationFn: async (data: { name: string; parentId?: string }) => {
+      return apiRequest("/api/portal/folders", "POST", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Pasta criada",
+        description: `Pasta "${newFolderName}" criada com sucesso`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/folders"] });
+      setShowCreateFolder(false);
+      setNewFolderName("");
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Não autorizado",
+          description: "Sessão expirada. A recarregar...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Falha na criação",
+        description: error.message || "Erro ao criar pasta",
         variant: "destructive",
       });
     },
@@ -788,15 +828,12 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
             </Button>
             <Button 
               onClick={() => {
-                // TODO: Implement folder creation
-                toast({
-                  title: "Pasta criada",
-                  description: `Pasta "${newFolderName}" criada com sucesso`,
+                createFolderMutation.mutate({ 
+                  name: newFolderName.trim(), 
+                  parentId: currentFolder || undefined 
                 });
-                setShowCreateFolder(false);
-                setNewFolderName("");
               }}
-              disabled={!newFolderName.trim()}
+              disabled={!newFolderName.trim() || createFolderMutation.isPending}
             >
               Criar Pasta
             </Button>
