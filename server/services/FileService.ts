@@ -69,6 +69,23 @@ export class FileService {
     return await megaService.getDownloadUrl(file.megaFileId);
   }
 
+  static async streamFile(fileId: string, userId: string): Promise<{ stream: any; size: number; mimeType: string; fileName: string }> {
+    const file = await storage.getFileById(fileId);
+    
+    if (!file || file.userId !== userId) {
+      throw new Error('File not found or unauthorized');
+    }
+
+    const { stream, size, mimeType } = await megaService.getFileStream(file.megaFileId);
+    
+    return {
+      stream,
+      size,
+      mimeType: file.mimeType || mimeType || 'application/octet-stream',
+      fileName: file.fileName
+    };
+  }
+
   static async deleteFile(fileId: string, userId: string): Promise<void> {
     const file = await storage.getFileById(fileId);
     

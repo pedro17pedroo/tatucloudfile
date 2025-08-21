@@ -79,11 +79,34 @@ export class FileController {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      const downloadUrl = await FileService.getDownloadUrl(fileId, userId);
-      res.json({ downloadUrl });
+      const { stream, size, mimeType, fileName } = await FileService.streamFile(fileId, userId);
+      
+      // Set appropriate headers for file streaming
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', size.toString());
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      
+      // Enable CORS for preview functionality
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      // Pipe the stream to response
+      stream.pipe(res);
+      
+      stream.on('error', (error: Error) => {
+        console.error('Stream error:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to stream file' });
+        }
+      });
+
     } catch (error) {
       console.error('Download error:', error);
-      res.status(500).json({ message: 'Failed to get download URL' });
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Failed to download file' });
+      }
     }
   }
 

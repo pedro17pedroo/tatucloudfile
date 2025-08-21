@@ -119,6 +119,49 @@ class MegaService {
     }
   }
 
+  async getFileStream(fileId: string): Promise<{ stream: any; size: number; mimeType?: string }> {
+    try {
+      const megaStorage = await this.getMegaStorage();
+      
+      // Find file by nodeId
+      const file = await this.findFileById(megaStorage.root, fileId);
+      if (!file) {
+        throw new Error('File not found in MEGA');
+      }
+
+      const stream = file.download();
+      return {
+        stream,
+        size: file.size,
+        mimeType: this.getMimeType(file.name)
+      };
+    } catch (error) {
+      console.error('Error getting file stream:', error);
+      throw new Error('Failed to get file stream');
+    }
+  }
+
+  private getMimeType(fileName: string): string {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    const mimeTypes: { [key: string]: string } = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'pdf': 'application/pdf',
+      'mp4': 'video/mp4',
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'xls': 'application/vnd.ms-excel',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'doc': 'application/msword'
+    };
+    return mimeTypes[ext || ''] || 'application/octet-stream';
+  }
+
   async deleteFile(fileId: string): Promise<void> {
     try {
       const megaStorage = await this.getMegaStorage();
