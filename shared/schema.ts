@@ -95,10 +95,21 @@ export const developerApiSettings = pgTable("developer_api_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Folders
+export const folders = pgTable("folders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(),
+  parentId: varchar("parent_id"), // Will be self-referencing after table creation
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // File metadata
 export const files = pgTable("files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  folderId: varchar("folder_id").references(() => folders.id),
   megaFileId: varchar("mega_file_id").notNull(),
   fileName: varchar("file_name").notNull(),
   fileSize: numeric("file_size").notNull(),
@@ -344,3 +355,5 @@ export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 export type MegaAccountStatus = typeof megaAccountStatus.$inferSelect;
 export type InsertMegaAccountStatus = typeof megaAccountStatus.$inferInsert;
+export type Folder = typeof folders.$inferSelect;
+export type InsertFolder = typeof folders.$inferInsert;

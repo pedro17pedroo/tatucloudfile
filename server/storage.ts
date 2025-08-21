@@ -26,6 +26,9 @@ import {
   type InsertPayment,
   type UserSettings,
   type InsertUserSettings,
+  folders,
+  type Folder,
+  type InsertFolder,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -62,6 +65,14 @@ export interface IStorage {
   getFileById(id: string): Promise<File | undefined>;
   deleteFile(id: string): Promise<void>;
   updateUserStorageUsed(userId: string, storageUsed: string): Promise<void>;
+  
+  // Folder operations
+  createFolder(folder: InsertFolder): Promise<Folder>;
+  getFoldersByUserId(userId: string): Promise<Folder[]>;
+  getFolderById(id: string): Promise<Folder | undefined>;
+  getFolderByNameAndParent(userId: string, name: string, parentId: string | null): Promise<Folder | undefined>;
+  updateFolder(id: string, updates: Partial<InsertFolder>): Promise<Folder>;
+  deleteFolder(id: string): Promise<void>;
   
   // MEGA credentials (admin only)
   getMegaCredentials(): Promise<MegaCredentials | undefined>;
@@ -345,6 +356,63 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  // Folder operations
+  async createFolder(folder: InsertFolder): Promise<Folder> {
+    const [newFolder] = await db
+      .insert(folders)
+      .values(folder)
+      .returning();
+    return newFolder;
+  }
+
+  async getFoldersByUserId(userId: string): Promise<Folder[]> {
+    return await db
+      .select()
+      .from(folders)
+      .where(eq(folders.userId, userId))
+      .orderBy(folders.name);
+  }
+
+  async getFolderById(id: string): Promise<Folder | undefined> {
+    const [folder] = await db
+      .select()
+      .from(folders)
+      .where(eq(folders.id, id));
+    return folder;
+  }
+
+  async getFolderByNameAndParent(userId: string, name: string, parentId: string | null): Promise<Folder | undefined> {
+    const [folder] = await db
+      .select()
+      .from(folders)
+      .where(
+        and(
+          eq(folders.userId, userId),
+          eq(folders.name, name),
+          parentId ? eq(folders.parentId, parentId) : sql`${folders.parentId} IS NULL`
+        )
+      );
+    return folder;
+  }
+
+  async updateFolder(id: string, updates: Partial<InsertFolder>): Promise<Folder> {
+    const [updatedFolder] = await db
+      .update(folders)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(folders.id, id))
+      .returning();
+    return updatedFolder;
+  }
+
+  async deleteFolder(id: string): Promise<void> {
+    await db
+      .delete(folders)
+      .where(eq(folders.id, id));
   }
 }
 
@@ -718,6 +786,31 @@ export class MemoryStorage implements IStorage {
       user.updatedAt = new Date();
       this.users.set(userId, user);
     }
+  }
+
+  // Folder operations (mock implementation)
+  async createFolder(folder: InsertFolder): Promise<Folder> {
+    throw new Error('Folder operations not implemented in memory storage');
+  }
+
+  async getFoldersByUserId(userId: string): Promise<Folder[]> {
+    return [];
+  }
+
+  async getFolderById(id: string): Promise<Folder | undefined> {
+    return undefined;
+  }
+
+  async getFolderByNameAndParent(userId: string, name: string, parentId: string | null): Promise<Folder | undefined> {
+    return undefined;
+  }
+
+  async updateFolder(id: string, updates: Partial<InsertFolder>): Promise<Folder> {
+    throw new Error('Folder operations not implemented in memory storage');
+  }
+
+  async deleteFolder(id: string): Promise<void> {
+    throw new Error('Folder operations not implemented in memory storage');
   }
 }
 

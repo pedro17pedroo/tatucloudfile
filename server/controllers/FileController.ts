@@ -5,6 +5,7 @@ import { z } from 'zod';
 const uploadSchema = z.object({
   fileName: z.string().min(1).optional(),
   filePath: z.string().optional(),
+  folderId: z.string().optional(),
 });
 
 export class FileController {
@@ -19,13 +20,14 @@ export class FileController {
         return res.status(400).json({ message: 'No file provided' });
       }
 
-      const { fileName, filePath } = uploadSchema.parse(req.body);
+      const { fileName, filePath, folderId } = uploadSchema.parse(req.body);
 
       const file = await FileService.uploadFile({
         userId,
         file: req.file,
         fileName: fileName || req.file.originalname,
         filePath: filePath || '/',
+        folderId: folderId || null,
       });
 
       res.status(201).json({

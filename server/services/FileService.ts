@@ -7,11 +7,12 @@ export interface UploadFileData {
   file: Express.Multer.File;
   fileName: string;
   filePath: string;
+  folderId?: string | null;
 }
 
 export class FileService {
   static async uploadFile(data: UploadFileData): Promise<File> {
-    const { userId, file, fileName, filePath } = data;
+    const { userId, file, fileName, filePath, folderId } = data;
 
     // Upload to MEGA
     const megaFile = await megaService.uploadFile(
@@ -23,6 +24,7 @@ export class FileService {
     // Save metadata to database
     const fileData = {
       userId,
+      folderId: folderId || null,
       megaFileId: megaFile.id,
       fileName,
       fileSize: file.size.toString(),

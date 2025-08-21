@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { FileController } from '../../controllers/FileController';
+import { FolderController } from '../../controllers/FolderController';
 import { AdminController } from '../../controllers/AdminController';
 import { DeveloperController } from '../../controllers/DeveloperController';
 import { SeedController } from '../../controllers/SeedController';
@@ -27,6 +28,12 @@ portalRouter.get('/files', FileController.getUserFiles);
 portalRouter.get('/files/:id/download', FileController.downloadFile);
 portalRouter.delete('/files/:id', FileController.deleteFile);
 portalRouter.get('/files/search', FileController.searchFiles);
+
+// Folder management for end users
+portalRouter.post('/folders', FolderController.createFolder);
+portalRouter.get('/folders', FolderController.getUserFolders);
+portalRouter.put('/folders/:id', FolderController.updateFolder);
+portalRouter.delete('/folders/:id', FolderController.deleteFolder);
 
 // User profile and plans
 portalRouter.get('/user/profile', UserController.getProfile);
