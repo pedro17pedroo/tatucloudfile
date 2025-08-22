@@ -759,6 +759,7 @@ fileName: "new_name.pdf" (opcional)`
                     >
                       <option value="GET">GET</option>
                       <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
                       <option value="DELETE">DELETE</option>
                     </select>
                   </div>
@@ -771,7 +772,7 @@ fileName: "new_name.pdf" (opcional)`
                         const endpoint = e.target.value;
                         let method = 'GET';
                         if (endpoint === '/files/upload' || endpoint === '/files/upload-multiple' || endpoint === '/folders') method = 'POST';
-                        else if (endpoint === '/files/{id}/move') method = 'PUT';
+                        else if (endpoint === '/files/{id}/move' || endpoint === '/files/{id}/replace') method = 'PUT';
                         else if (endpoint === '/files/{id}') method = 'DELETE';
                         
                         setTestEndpoint({ 
@@ -789,6 +790,7 @@ fileName: "new_name.pdf" (opcional)`
                       <option value="/files/upload-multiple">POST /files/upload-multiple</option>
                       <option value="/folders">POST /folders</option>
                       <option value="/files/{id}/move">PUT /files/&#123;id&#125;/move</option>
+                      <option value="/files/{id}/replace">PUT /files/&#123;id&#125;/replace</option>
                       <option value="/files/search">GET /files/search</option>
                       <option value="/files/{id}/download">GET /files/&#123;id&#125;/download</option>
                       <option value="/files/{id}">DELETE /files/&#123;id&#125;</option>
@@ -888,7 +890,7 @@ fileName: "new_name.pdf" (opcional)`
                 {testEndpoint.method !== 'GET' && (
                   <div>
                     <Label>Request Body</Label>
-                    {testEndpoint.endpoint === '/files/upload' ? (
+                    {(testEndpoint.endpoint === '/files/upload' || testEndpoint.endpoint === '/files/{id}/replace') ? (
                       <div className="space-y-3 mt-1">
                         <div>
                           <Label htmlFor="file-upload" className="text-sm text-gray-600">Ficheiro para Upload</Label>
