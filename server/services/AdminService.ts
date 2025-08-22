@@ -461,7 +461,7 @@ export class AdminService {
       if (!credentials) return null;
 
       const { PasswordEncryption } = await import('../utils/encryption');
-      const decryptedPassword = PasswordEncryption.decrypt(credentials.encryptedPassword);
+      const decryptedPassword = PasswordEncryption.decrypt(credentials.encryptedPassword!);
 
       console.log('[MEGA Status] Connecting to get account info...');
       const storage = new Storage({ email: credentials.email, password: decryptedPassword });
@@ -469,10 +469,61 @@ export class AdminService {
 
       console.log('[MEGA Status] Connected, retrieving account information...');
       
-      // Get storage info directly from storage properties
-      const totalSpace = storage.spaceTotal || 0;
-      const usedSpace = storage.spaceUsed || 0;
-      const availableSpace = totalSpace - usedSpace;
+      // Wait for storage to fully initialize and get account info
+      let totalSpace = 0;
+      let usedSpace = 0;
+      let transferQuota = 0;
+      let transferUsed = 0;
+      
+      // Try multiple methods to get account information
+      try {
+        // Method 1: Direct properties (might not be immediately available)
+        const storageAny = storage as any;
+        if (storageAny.spaceTotal && storageAny.spaceTotal > 0) {
+          totalSpace = storageAny.spaceTotal;
+          usedSpace = storageAny.spaceUsed || 0;
+          transferQuota = storageAny.downloadBandwidthTotal || 0;
+          transferUsed = storageAny.downloadBandwidthUsed || 0;
+        } else {
+          // Method 2: Force refresh by accessing account info
+          console.log('[MEGA Status] Forcing account info refresh...');
+          
+          // Access the root to trigger account info loading
+          await storage.root;
+          
+          // Wait a bit and try again
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          totalSpace = storageAny.spaceTotal || 0;
+          usedSpace = storageAny.spaceUsed || 0;
+          transferQuota = storageAny.downloadBandwidthTotal || 0;
+          transferUsed = storageAny.downloadBandwidthUsed || 0;
+          
+          // Method 3: If still no data, try to get from account info API
+          if (totalSpace === 0) {
+            console.log('[MEGA Status] Trying alternative method to get account info...');
+            
+            // Get account information from storage internals
+            if (storageAny.api && storageAny.api.request) {
+              try {
+                const accountInfo: any = await storageAny.api.request({a: 'uq', strg: 1});
+                console.log('[MEGA Status] Raw account info:', accountInfo);
+                
+                if (accountInfo && accountInfo.mstrg !== undefined) {
+                  totalSpace = accountInfo.mstrg || 0;
+                  usedSpace = accountInfo.cstrg || 0;
+                }
+              } catch (apiError) {
+                console.log('[MEGA Status] API request failed:', apiError);
+              }
+            }
+          }
+        }
+      } catch (infoError) {
+        console.log('[MEGA Status] Error getting detailed account info:', infoError);
+      }
+      
+      const availableSpace = Math.max(0, totalSpace - usedSpace);
       
       // Determine account type based on space limits
       let accountType = 'free';
@@ -482,11 +533,13 @@ export class AdminService {
         accountType = 'pro';
       }
       
-      console.log('[MEGA Status] Account info:', {
+      console.log('[MEGA Status] Final account info:', {
         totalSpace: totalSpace,
         usedSpace: usedSpace,
         availableSpace: availableSpace,
-        accountType: accountType
+        accountType: accountType,
+        transferQuota: transferQuota,
+        transferUsed: transferUsed
       });
       
       const statusData: InsertMegaAccountStatus = {
@@ -494,8 +547,8 @@ export class AdminService {
         usedSpace: usedSpace.toString(), 
         availableSpace: availableSpace.toString(),
         accountType: accountType,
-        transferQuota: (storage.downloadBandwidthTotal || 0).toString(),
-        transferUsed: (storage.downloadBandwidthUsed || 0).toString(),
+        transferQuota: transferQuota.toString(),
+        transferUsed: transferUsed.toString(),
         isConnected: true,
         lastChecked: new Date(),
         error: null
