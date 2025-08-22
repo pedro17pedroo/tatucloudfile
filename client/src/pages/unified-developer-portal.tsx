@@ -314,6 +314,14 @@ customNames: ["new_name1.pdf", "new_name2.jpg"]`
 }`
     },
     {
+      method: 'PUT',
+      path: '/api/files/{id}/replace',
+      description: 'Substituir ficheiro existente',
+      example: `FormData:
+file: [new_file_data]
+fileName: "new_name.pdf" (opcional)`
+    },
+    {
       method: 'GET',
       path: '/api/files',
       description: 'Listar ficheiros',
