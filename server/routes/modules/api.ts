@@ -282,15 +282,27 @@ apiRouter.put('/files/:id/replace', upload.single('file'), async (req: any, res)
     // Build the complete path including folder structure
     let remotePath = '/';
     if (existingFile.folderId) {
-      const { FolderService } = await import('../../services/FolderService');
-      const folderPath = await FolderService.getFolderPath(existingFile.folderId, req.apiUser.userId);
-      if (folderPath.length > 0) {
-        remotePath = '/' + folderPath.map(f => f.name).join('/') + '/';
+      console.log('[Replace] File has folderId:', existingFile.folderId);
+      
+      // Get folder directly from database to build path
+      const folderRecord = await db.select().from(folders).where(
+        and(eq(folders.id, existingFile.folderId), eq(folders.userId, req.apiUser.userId))
+      );
+      
+      if (folderRecord.length > 0) {
+        const folder = folderRecord[0];
+        console.log('[Replace] Found folder:', folder);
+        
+        // For now, support only direct folders (no nested structure)
+        // This can be expanded later for nested folders
+        remotePath = '/' + folder.name + '/';
+        console.log('[Replace] Constructed remotePath:', remotePath);
       }
     }
     
     // Add filename to complete the path
     const completeRemotePath = remotePath + newFileName;
+    console.log('[Replace] Complete remote path:', completeRemotePath);
     
     // Replace file in MEGA (delete old, upload new)
     const newMegaFile = await megaService.replaceFile(
