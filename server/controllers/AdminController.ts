@@ -13,6 +13,10 @@ const planSchema = z.object({
   storageLimit: z.string(),
   pricePerMonth: z.string(),
   apiCallsPerHour: z.number(),
+  isAdminOnly: z.boolean().optional(),
+  description: z.string().optional(),
+  features: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
 });
 
 const paymentActionSchema = z.object({
@@ -27,6 +31,12 @@ const userUpdateSchema = z.object({
   lastName: z.string().optional(),
   planId: z.string().optional(),
   isAdmin: z.boolean().optional(),
+  customStorageLimit: z.string().optional(),
+  customApiCallsPerHour: z.number().optional(),
+  isInternalSystem: z.boolean().optional(),
+  systemName: z.string().optional(),
+  bypassPlanLimits: z.boolean().optional(),
+  notes: z.string().optional(),
 });
 
 const createUserSchema = z.object({

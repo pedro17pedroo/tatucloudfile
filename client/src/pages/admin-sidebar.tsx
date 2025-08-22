@@ -173,7 +173,27 @@ export function AdminPanelWithSidebar() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [megaCredentials, setMegaCredentials] = useState({ email: '', password: '' });
-  const [planForm, setPlanForm] = useState({ name: '', storageLimit: '', pricePerMonth: '', apiCallsPerHour: '' });
+  const [planForm, setPlanForm] = useState({ 
+    name: '', 
+    storageLimit: '', 
+    pricePerMonth: '', 
+    apiCallsPerHour: '', 
+    isAdminOnly: false, 
+    description: '', 
+    features: [] as string[], 
+    isActive: true 
+  });
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [editPlanForm, setEditPlanForm] = useState({
+    name: '',
+    storageLimit: '',
+    pricePerMonth: '',
+    apiCallsPerHour: '',
+    isAdminOnly: false,
+    description: '',
+    features: [] as string[],
+    isActive: true
+  });
   const [paymentMethodForm, setPaymentMethodForm] = useState({ 
     name: '', 
     type: 'stripe' as const,
@@ -189,6 +209,20 @@ export function AdminPanelWithSidebar() {
     lastName: '',
     planId: 'basic',
     isAdmin: false
+  });
+
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    planId: '',
+    isAdmin: false,
+    customStorageLimit: '',
+    customApiCallsPerHour: '',
+    isInternalSystem: false,
+    systemName: '',
+    bypassPlanLimits: false,
+    notes: ''
   });
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showCreateUser, setShowCreateUser] = useState(false);
@@ -2068,83 +2102,224 @@ export function AdminPanelWithSidebar() {
                           <TableCell>{formatDate(user.createdAt)}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Dialog>
+                              <Dialog open={editingUser?.id === user.id} onOpenChange={(open) => {
+                                if (!open) {
+                                  setEditingUser(null);
+                                  setEditForm({
+                                    firstName: '',
+                                    lastName: '',
+                                    planId: '',
+                                    isAdmin: false,
+                                    customStorageLimit: '',
+                                    customApiCallsPerHour: '',
+                                    isInternalSystem: false,
+                                    systemName: '',
+                                    bypassPlanLimits: false,
+                                    notes: ''
+                                  });
+                                }
+                              }}>
                                 <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingUser(user);
+                                      setEditForm({
+                                        firstName: user.firstName || '',
+                                        lastName: user.lastName || '',
+                                        planId: user.planId || 'basic',
+                                        isAdmin: user.isAdmin || false,
+                                        customStorageLimit: user.customStorageLimit || '',
+                                        customApiCallsPerHour: user.customApiCallsPerHour || '',
+                                        isInternalSystem: user.isInternalSystem || false,
+                                        systemName: user.systemName || '',
+                                        bypassPlanLimits: user.bypassPlanLimits || false,
+                                        notes: user.notes || ''
+                                      });
+                                    }}
+                                  >
                                     <Edit className="w-4 h-4" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-md">
+                                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                                   <DialogHeader>
                                     <DialogTitle>Editar Utilizador</DialogTitle>
                                     <DialogDescription>
                                       Modificar dados de {user.email}
                                     </DialogDescription>
                                   </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>Email</Label>
-                                      <Input defaultValue={user.email} disabled className="bg-gray-50" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-6">
+                                    {/* Basic Info */}
+                                    <div className="space-y-4">
+                                      <h3 className="text-lg font-medium">Informações Básicas</h3>
                                       <div>
-                                        <Label>Primeiro Nome</Label>
-                                        <Input defaultValue={user.firstName || ''} />
+                                        <Label>Email</Label>
+                                        <Input value={user.email} disabled className="bg-gray-50" />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <Label>Primeiro Nome</Label>
+                                          <Input 
+                                            value={editForm.firstName}
+                                            onChange={(e) => setEditForm({...editForm, firstName: e.target.value})}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Último Nome</Label>
+                                          <Input 
+                                            value={editForm.lastName}
+                                            onChange={(e) => setEditForm({...editForm, lastName: e.target.value})}
+                                          />
+                                        </div>
                                       </div>
                                       <div>
-                                        <Label>Último Nome</Label>
-                                        <Input defaultValue={user.lastName || ''} />
+                                        <Label>Plano</Label>
+                                        <Select value={editForm.planId} onValueChange={(value) => setEditForm({...editForm, planId: value})}>
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {plansData?.map((plan) => (
+                                              <SelectItem key={plan.id} value={plan.id}>
+                                                {plan.name} - €{parseFloat(plan.pricePerMonth).toFixed(2)}/mês
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`admin-edit-${user.id}`}
+                                          checked={editForm.isAdmin}
+                                          onChange={(e) => setEditForm({...editForm, isAdmin: e.target.checked})}
+                                          className="rounded"
+                                        />
+                                        <Label htmlFor={`admin-edit-${user.id}`} className="flex items-center">
+                                          <Shield className="w-4 h-4 mr-2 text-green-600" />
+                                          Privilégios de Administrador
+                                        </Label>
                                       </div>
                                     </div>
-                                    <div>
-                                      <Label>Plano</Label>
-                                      <Select defaultValue={user.planId || 'basic'}>
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {plansData?.map((plan) => (
-                                            <SelectItem key={plan.id} value={plan.id}>
-                                              {plan.name} - €{parseFloat(plan.pricePerMonth).toFixed(2)}/mês
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+
+                                    {/* Custom Overrides */}
+                                    <div className="space-y-4 border-t pt-4">
+                                      <h3 className="text-lg font-medium">Substituições Personalizadas</h3>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <Label>Limite de Storage Personalizado (GB)</Label>
+                                          <Input 
+                                            type="number"
+                                            placeholder="Deixar vazio para usar limite do plano"
+                                            value={editForm.customStorageLimit}
+                                            onChange={(e) => setEditForm({...editForm, customStorageLimit: e.target.value})}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Chamadas API/Hora Personalizadas</Label>
+                                          <Input 
+                                            type="number"
+                                            placeholder="Deixar vazio para usar limite do plano"
+                                            value={editForm.customApiCallsPerHour}
+                                            onChange={(e) => setEditForm({...editForm, customApiCallsPerHour: e.target.value})}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`bypass-${user.id}`}
+                                          checked={editForm.bypassPlanLimits}
+                                          onChange={(e) => setEditForm({...editForm, bypassPlanLimits: e.target.checked})}
+                                          className="rounded"
+                                        />
+                                        <Label htmlFor={`bypass-${user.id}`} className="flex items-center">
+                                          <Zap className="w-4 h-4 mr-2 text-yellow-600" />
+                                          Ignorar Todas as Limitações do Plano
+                                        </Label>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                      <input
-                                        type="checkbox"
-                                        id={`admin-${user.id}`}
-                                        defaultChecked={user.isAdmin}
-                                        className="rounded"
-                                      />
-                                      <Label htmlFor={`admin-${user.id}`} className="flex items-center">
-                                        <Shield className="w-4 h-4 mr-2 text-green-600" />
-                                        Privilégios de Administrador
-                                      </Label>
+
+                                    {/* Internal System */}
+                                    <div className="space-y-4 border-t pt-4">
+                                      <h3 className="text-lg font-medium">Configurações de Sistema Interno</h3>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`internal-${user.id}`}
+                                          checked={editForm.isInternalSystem}
+                                          onChange={(e) => setEditForm({...editForm, isInternalSystem: e.target.checked})}
+                                          className="rounded"
+                                        />
+                                        <Label htmlFor={`internal-${user.id}`} className="flex items-center">
+                                          <Building2 className="w-4 h-4 mr-2 text-blue-600" />
+                                          Sistema Interno da Empresa
+                                        </Label>
+                                      </div>
+                                      {editForm.isInternalSystem && (
+                                        <div>
+                                          <Label>Nome do Sistema</Label>
+                                          <Input 
+                                            placeholder="ex: Tatu, Sistema CRM, etc."
+                                            value={editForm.systemName}
+                                            onChange={(e) => setEditForm({...editForm, systemName: e.target.value})}
+                                          />
+                                        </div>
+                                      )}
                                     </div>
-                                    <div className="flex space-x-2">
+
+                                    {/* Notes */}
+                                    <div className="space-y-4 border-t pt-4">
+                                      <h3 className="text-lg font-medium">Notas do Administrador</h3>
+                                      <div>
+                                        <Label>Observações</Label>
+                                        <textarea 
+                                          className="w-full p-2 border rounded"
+                                          rows={3}
+                                          placeholder="Notas internas sobre este utilizador/sistema..."
+                                          value={editForm.notes}
+                                          onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex space-x-2 border-t pt-4">
                                       <Button 
                                         className="flex-1"
                                         onClick={() => {
-                                          const firstName = (document.querySelector(`input[defaultValue="${user.firstName || ''}"]`) as HTMLInputElement)?.value;
-                                          const lastName = (document.querySelector(`input[defaultValue="${user.lastName || ''}"]`) as HTMLInputElement)?.value;
-                                          const planSelect = document.querySelector(`select[defaultValue="${user.planId || 'basic'}"]`) as HTMLSelectElement;
-                                          const isAdminCheck = document.getElementById(`admin-${user.id}`) as HTMLInputElement;
+                                          const userData: any = {
+                                            firstName: editForm.firstName,
+                                            lastName: editForm.lastName,
+                                            planId: editForm.planId,
+                                            isAdmin: editForm.isAdmin,
+                                            isInternalSystem: editForm.isInternalSystem,
+                                            bypassPlanLimits: editForm.bypassPlanLimits,
+                                            notes: editForm.notes
+                                          };
+                                          
+                                          if (editForm.customStorageLimit) {
+                                            userData.customStorageLimit = (parseFloat(editForm.customStorageLimit) * 1024 * 1024 * 1024).toString();
+                                          }
+                                          
+                                          if (editForm.customApiCallsPerHour) {
+                                            userData.customApiCallsPerHour = parseInt(editForm.customApiCallsPerHour);
+                                          }
+                                          
+                                          if (editForm.isInternalSystem && editForm.systemName) {
+                                            userData.systemName = editForm.systemName;
+                                          }
                                           
                                           updateUserMutation.mutate({
                                             userId: user.id,
-                                            userData: {
-                                              firstName,
-                                              lastName,
-                                              planId: planSelect?.value,
-                                              isAdmin: isAdminCheck?.checked
-                                            }
+                                            userData
                                           });
                                         }}
+                                        disabled={updateUserMutation.isPending}
                                       >
                                         <Save className="w-4 h-4 mr-2" />
-                                        Guardar
+                                        {updateUserMutation.isPending ? 'Guardando...' : 'Guardar'}
                                       </Button>
                                       <Button 
                                         variant="outline" 
@@ -2244,12 +2419,93 @@ export function AdminPanelWithSidebar() {
                       <Label htmlFor="api-calls">Chamadas API por Hora</Label>
                       <Input
                         id="api-calls"
+                        type="number"
                         value={planForm.apiCallsPerHour}
                         onChange={(e) => setPlanForm({...planForm, apiCallsPerHour: e.target.value})}
                         placeholder="ex: 10000"
                       />
                     </div>
-                    <Button className="w-full">
+                    <div>
+                      <Label htmlFor="plan-description">Descrição</Label>
+                      <Textarea
+                        id="plan-description"
+                        value={planForm.description}
+                        onChange={(e) => setPlanForm({...planForm, description: e.target.value})}
+                        placeholder="Descrição detalhada do plano..."
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium">Configurações Especiais</h4>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="admin-only-plan"
+                          checked={planForm.isAdminOnly}
+                          onChange={(e) => setPlanForm({...planForm, isAdminOnly: e.target.checked})}
+                          className="rounded"
+                        />
+                        <Label htmlFor="admin-only-plan" className="flex items-center">
+                          <Shield className="w-4 h-4 mr-2 text-purple-600" />
+                          Plano Exclusivo para Admins
+                        </Label>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Planos exclusivos não aparecem na lista pública e só podem ser atribuídos por administradores
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="plan-active"
+                          checked={planForm.isActive}
+                          onChange={(e) => setPlanForm({...planForm, isActive: e.target.checked})}
+                          className="rounded"
+                        />
+                        <Label htmlFor="plan-active" className="flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                          Plano Ativo
+                        </Label>
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          const planData = {
+                            id: planForm.name.toLowerCase().replace(/\s+/g, '-'),
+                            name: planForm.name,
+                            storageLimit: planForm.storageLimit,
+                            pricePerMonth: planForm.pricePerMonth,
+                            apiCallsPerHour: parseInt(planForm.apiCallsPerHour),
+                            isAdminOnly: planForm.isAdminOnly,
+                            description: planForm.description,
+                            features: planForm.features,
+                            isActive: planForm.isActive
+                          };
+                          
+                          const response = await apiRequest('/api/portal/admin/plans', 'POST', planData);
+                          if (response.ok) {
+                            queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/plans'] });
+                            setPlanForm({
+                              name: '',
+                              storageLimit: '',
+                              pricePerMonth: '',
+                              apiCallsPerHour: '',
+                              isAdminOnly: false,
+                              description: '',
+                              features: [],
+                              isActive: true
+                            });
+                            toast({ title: 'Plano criado com sucesso!' });
+                          } else {
+                            const error = await response.json();
+                            toast({ title: 'Erro ao criar plano', description: error.message, variant: 'destructive' });
+                          }
+                        } catch (error) {
+                          toast({ title: 'Erro ao criar plano', description: 'Erro inesperado', variant: 'destructive' });
+                        }
+                      }}
+                    >
                       <Save className="w-4 h-4 mr-2" />
                       Criar Plano
                     </Button>
@@ -2270,6 +2526,8 @@ export function AdminPanelWithSidebar() {
                         <TableHead>Armazenamento</TableHead>
                         <TableHead>Preço/Mês</TableHead>
                         <TableHead>API Calls/Hora</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Estado</TableHead>
                         <TableHead>Criado</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -2279,8 +2537,19 @@ export function AdminPanelWithSidebar() {
                         <TableRow key={plan.id}>
                           <TableCell>
                             <div>
-                              <span className="font-medium">{plan.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{plan.name}</span>
+                                {plan.isAdminOnly && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <Shield className="w-3 h-3 mr-1" />
+                                    Admin Only
+                                  </Badge>
+                                )}
+                              </div>
                               <div className="text-sm text-gray-500">ID: {plan.id}</div>
+                              {plan.description && (
+                                <div className="text-sm text-gray-600 mt-1">{plan.description}</div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -2292,22 +2561,72 @@ export function AdminPanelWithSidebar() {
                           <TableCell>
                             <span>{plan.apiCallsPerHour.toLocaleString()}</span>
                           </TableCell>
+                          <TableCell>
+                            {plan.isAdminOnly ? (
+                              <Badge variant="outline" className="text-purple-600 border-purple-200">
+                                <Shield className="w-3 h-3 mr-1" />
+                                Exclusivo Admin
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-green-600 border-green-200">
+                                <Globe className="w-3 h-3 mr-1" />
+                                Público
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {plan.isActive ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                Ativo
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                Inativo
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-sm text-gray-500">
                             {formatDate(plan.createdAt)}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
-                              <Dialog>
+                              <Dialog open={editingPlan?.id === plan.id} onOpenChange={(open) => {
+                                if (!open) {
+                                  setEditingPlan(null);
+                                  setEditPlanForm({
+                                    name: '',
+                                    storageLimit: '',
+                                    pricePerMonth: '',
+                                    apiCallsPerHour: '',
+                                    isAdminOnly: false,
+                                    description: '',
+                                    features: [],
+                                    isActive: true
+                                  });
+                                }
+                              }}>
                                 <DialogTrigger asChild>
                                   <Button 
                                     variant="outline" 
                                     size="sm"
-                                    onClick={() => setSelectedPlan(plan)}
+                                    onClick={() => {
+                                      setEditingPlan(plan);
+                                      setEditPlanForm({
+                                        name: plan.name,
+                                        storageLimit: plan.storageLimit,
+                                        pricePerMonth: plan.pricePerMonth,
+                                        apiCallsPerHour: plan.apiCallsPerHour.toString(),
+                                        isAdminOnly: plan.isAdminOnly || false,
+                                        description: plan.description || '',
+                                        features: plan.features || [],
+                                        isActive: plan.isActive !== false
+                                      });
+                                    }}
                                   >
                                     <Edit className="w-4 h-4" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="max-w-2xl">
                                   <DialogHeader>
                                     <DialogTitle>Editar Plano</DialogTitle>
                                     <DialogDescription>
@@ -2317,21 +2636,101 @@ export function AdminPanelWithSidebar() {
                                   <div className="space-y-4">
                                     <div>
                                       <Label>Nome do Plano</Label>
-                                      <Input defaultValue={plan.name} />
+                                      <Input 
+                                        value={editPlanForm.name}
+                                        onChange={(e) => setEditPlanForm({...editPlanForm, name: e.target.value})}
+                                      />
                                     </div>
                                     <div>
-                                      <Label>Limite de Armazenamento</Label>
-                                      <Input defaultValue={plan.storageLimit} />
+                                      <Label>Limite de Armazenamento (bytes)</Label>
+                                      <Input 
+                                        value={editPlanForm.storageLimit}
+                                        onChange={(e) => setEditPlanForm({...editPlanForm, storageLimit: e.target.value})}
+                                      />
                                     </div>
                                     <div>
-                                      <Label>Preço por Mês</Label>
-                                      <Input defaultValue={plan.pricePerMonth} />
+                                      <Label>Preço por Mês (€)</Label>
+                                      <Input 
+                                        type="number"
+                                        step="0.01"
+                                        value={editPlanForm.pricePerMonth}
+                                        onChange={(e) => setEditPlanForm({...editPlanForm, pricePerMonth: e.target.value})}
+                                      />
                                     </div>
                                     <div>
                                       <Label>Chamadas API por Hora</Label>
-                                      <Input defaultValue={plan.apiCallsPerHour} />
+                                      <Input 
+                                        type="number"
+                                        value={editPlanForm.apiCallsPerHour}
+                                        onChange={(e) => setEditPlanForm({...editPlanForm, apiCallsPerHour: e.target.value})}
+                                      />
                                     </div>
-                                    <Button className="w-full">
+                                    <div>
+                                      <Label>Descrição</Label>
+                                      <Textarea
+                                        value={editPlanForm.description}
+                                        onChange={(e) => setEditPlanForm({...editPlanForm, description: e.target.value})}
+                                        rows={3}
+                                      />
+                                    </div>
+                                    <div className="space-y-4 border-t pt-4">
+                                      <h4 className="font-medium">Configurações Especiais</h4>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`admin-only-edit-${plan.id}`}
+                                          checked={editPlanForm.isAdminOnly}
+                                          onChange={(e) => setEditPlanForm({...editPlanForm, isAdminOnly: e.target.checked})}
+                                          className="rounded"
+                                        />
+                                        <Label htmlFor={`admin-only-edit-${plan.id}`} className="flex items-center">
+                                          <Shield className="w-4 h-4 mr-2 text-purple-600" />
+                                          Plano Exclusivo para Admins
+                                        </Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`plan-active-edit-${plan.id}`}
+                                          checked={editPlanForm.isActive}
+                                          onChange={(e) => setEditPlanForm({...editPlanForm, isActive: e.target.checked})}
+                                          className="rounded"
+                                        />
+                                        <Label htmlFor={`plan-active-edit-${plan.id}`} className="flex items-center">
+                                          <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                          Plano Ativo
+                                        </Label>
+                                      </div>
+                                    </div>
+                                    <Button 
+                                      className="w-full"
+                                      onClick={async () => {
+                                        try {
+                                          const planData = {
+                                            name: editPlanForm.name,
+                                            storageLimit: editPlanForm.storageLimit,
+                                            pricePerMonth: editPlanForm.pricePerMonth,
+                                            apiCallsPerHour: parseInt(editPlanForm.apiCallsPerHour),
+                                            isAdminOnly: editPlanForm.isAdminOnly,
+                                            description: editPlanForm.description,
+                                            features: editPlanForm.features,
+                                            isActive: editPlanForm.isActive
+                                          };
+                                          
+                                          const response = await apiRequest(`/api/portal/admin/plans/${plan.id}`, 'PUT', planData);
+                                          if (response.ok) {
+                                            queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/plans'] });
+                                            setEditingPlan(null);
+                                            toast({ title: 'Plano atualizado com sucesso!' });
+                                          } else {
+                                            const error = await response.json();
+                                            toast({ title: 'Erro ao atualizar plano', description: error.message, variant: 'destructive' });
+                                          }
+                                        } catch (error) {
+                                          toast({ title: 'Erro ao atualizar plano', description: 'Erro inesperado', variant: 'destructive' });
+                                        }
+                                      }}
+                                    >
                                       <Save className="w-4 h-4 mr-2" />
                                       Guardar Alterações
                                     </Button>
@@ -2342,6 +2741,22 @@ export function AdminPanelWithSidebar() {
                                 variant="outline" 
                                 size="sm"
                                 className="text-red-600 hover:text-red-700"
+                                onClick={async () => {
+                                  if (confirm(`Tem a certeza que quer eliminar o plano "${plan.name}"? Esta ação não pode ser desfeita.`)) {
+                                    try {
+                                      const response = await apiRequest(`/api/portal/admin/plans/${plan.id}`, 'DELETE');
+                                      if (response.ok) {
+                                        queryClient.invalidateQueries({ queryKey: ['/api/portal/admin/plans'] });
+                                        toast({ title: 'Plano eliminado com sucesso!' });
+                                      } else {
+                                        const error = await response.json();
+                                        toast({ title: 'Erro ao eliminar plano', description: error.message, variant: 'destructive' });
+                                      }
+                                    } catch (error) {
+                                      toast({ title: 'Erro ao eliminar plano', description: 'Erro inesperado', variant: 'destructive' });
+                                    }
+                                  }
+                                }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

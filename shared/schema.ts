@@ -36,6 +36,13 @@ export const users = pgTable("users", {
   planId: varchar("plan_id").references(() => plans.id).default('basic'),
   storageUsed: numeric("storage_used").default('0'),
   isAdmin: boolean("is_admin").default(false),
+  // Per-user overrides (admin configurable)
+  customStorageLimit: numeric("custom_storage_limit"), // Override plan storage limit
+  customApiCallsPerHour: integer("custom_api_calls_per_hour"), // Override plan API limits
+  isInternalSystem: boolean("is_internal_system").default(false), // For internal company systems
+  systemName: varchar("system_name"), // Name of internal system (e.g., "Tatu")
+  bypassPlanLimits: boolean("bypass_plan_limits").default(false), // Bypass all plan restrictions
+  notes: text("notes"), // Admin notes about user/system
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -47,6 +54,10 @@ export const plans = pgTable("plans", {
   storageLimit: numeric("storage_limit").notNull(), // in bytes
   pricePerMonth: numeric("price_per_month").notNull(),
   apiCallsPerHour: integer("api_calls_per_hour").notNull(),
+  isAdminOnly: boolean("is_admin_only").default(false), // Admin-only plans not visible to regular users
+  description: text("description"), // Plan description
+  features: jsonb("features").default('[]'), // List of features
+  isActive: boolean("is_active").default(true), // Enable/disable plan
   createdAt: timestamp("created_at").defaultNow(),
 });
 
