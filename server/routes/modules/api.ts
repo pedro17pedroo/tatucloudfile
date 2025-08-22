@@ -9,6 +9,45 @@ import bcrypt from 'bcrypt';
 const apiRouter = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Helper function to get folder information for a file
+async function getFolderInfo(folderId: string | null, userId: string) {
+  if (!folderId) {
+    return {
+      folderName: null,
+      folderPath: '/',
+      folderId: null
+    };
+  }
+
+  try {
+    const folderRecord = await db.select().from(folders).where(
+      and(eq(folders.id, folderId), eq(folders.userId, userId))
+    );
+
+    if (folderRecord.length === 0) {
+      return {
+        folderName: null,
+        folderPath: '/',
+        folderId: null
+      };
+    }
+
+    const folder = folderRecord[0];
+    return {
+      folderName: folder.name,
+      folderPath: '/' + folder.name + '/',
+      folderId: folder.id
+    };
+  } catch (error) {
+    console.error('Error getting folder info:', error);
+    return {
+      folderName: null,
+      folderPath: '/',
+      folderId: null
+    };
+  }
+}
+
 // API Key Authentication Middleware
 async function authenticateApiKey(req: any, res: any, next: any) {
   const authHeader = req.headers.authorization;
@@ -143,15 +182,27 @@ apiRouter.post('/files/upload', upload.single('file'), async (req: any, res) => 
 apiRouter.get('/files', async (req: any, res) => {
   try {
     const userFiles = await db.select().from(files).where(eq(files.userId, req.apiUser.userId));
+    
+    // Add folder information to each file
+    const filesWithFolders = await Promise.all(
+      userFiles.map(async (file) => {
+        const folderInfo = await getFolderInfo(file.folderId, req.apiUser.userId);
+        return {
+          id: file.id,
+          name: file.fileName,
+          size: parseInt(file.fileSize),
+          mimeType: file.mimeType,
+          uploadedAt: file.uploadedAt,
+          downloadUrl: `/api/v1/files/${file.id}/download`,
+          folderName: folderInfo.folderName,
+          folderPath: folderInfo.folderPath,
+          folderId: folderInfo.folderId
+        };
+      })
+    );
+    
     res.json({
-      files: userFiles.map(file => ({
-        id: file.id,
-        name: file.fileName,
-        size: parseInt(file.fileSize),
-        mimeType: file.mimeType,
-        uploadedAt: file.uploadedAt,
-        downloadUrl: `/api/v1/files/${file.id}/download`
-      }))
+      files: filesWithFolders
     });
   } catch (error) {
     console.error('List files error:', error);
@@ -171,11 +222,16 @@ apiRouter.get('/files/:id/download', async (req: any, res) => {
     }
 
     const file = fileRecord[0];
+    const folderInfo = await getFolderInfo(file.folderId, req.apiUser.userId);
     const downloadUrl = await megaService.getDownloadUrl(file.megaFileId);
+    
     res.json({
       success: true,
       downloadUrl: downloadUrl,
-      fileName: file.fileName
+      fileName: file.fileName,
+      folderName: folderInfo.folderName,
+      folderPath: folderInfo.folderPath,
+      folderId: folderInfo.folderId
     });
   } catch (error) {
     console.error('Download error:', error);
@@ -216,15 +272,26 @@ apiRouter.get('/files/search', async (req: any, res) => {
 
     const searchResults = await db.select().from(files).where(finalCondition);
 
+    // Add folder information to search results
+    const filesWithFolders = await Promise.all(
+      searchResults.map(async (file: any) => {
+        const folderInfo = await getFolderInfo(file.folderId, req.apiUser.userId);
+        return {
+          id: file.id,
+          name: file.fileName,
+          size: parseInt(file.fileSize),
+          mimeType: file.mimeType,
+          uploadedAt: file.uploadedAt,
+          downloadUrl: `/api/v1/files/${file.id}/download`,
+          folderName: folderInfo.folderName,
+          folderPath: folderInfo.folderPath,
+          folderId: folderInfo.folderId
+        };
+      })
+    );
+    
     res.json({
-      files: searchResults.map((file: any) => ({
-        id: file.id,
-        name: file.fileName,
-        size: parseInt(file.fileSize),
-        mimeType: file.mimeType,
-        uploadedAt: file.uploadedAt,
-        downloadUrl: `/api/v1/files/${file.id}/download`
-      }))
+      files: filesWithFolders
     });
   } catch (error) {
     console.error('Search error:', error);
@@ -282,8 +349,6 @@ apiRouter.put('/files/:id/replace', upload.single('file'), async (req: any, res)
     // Build the complete path including folder structure
     let remotePath = '/';
     if (existingFile.folderId) {
-      console.log('[Replace] File has folderId:', existingFile.folderId);
-      
       // Get folder directly from database to build path
       const folderRecord = await db.select().from(folders).where(
         and(eq(folders.id, existingFile.folderId), eq(folders.userId, req.apiUser.userId))
@@ -291,18 +356,12 @@ apiRouter.put('/files/:id/replace', upload.single('file'), async (req: any, res)
       
       if (folderRecord.length > 0) {
         const folder = folderRecord[0];
-        console.log('[Replace] Found folder:', folder);
-        
-        // For now, support only direct folders (no nested structure)
-        // This can be expanded later for nested folders
         remotePath = '/' + folder.name + '/';
-        console.log('[Replace] Constructed remotePath:', remotePath);
       }
     }
     
     // Add filename to complete the path
     const completeRemotePath = remotePath + newFileName;
-    console.log('[Replace] Complete remote path:', completeRemotePath);
     
     // Replace file in MEGA (delete old, upload new)
     const newMegaFile = await megaService.replaceFile(
