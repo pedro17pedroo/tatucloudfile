@@ -279,15 +279,28 @@ apiRouter.put('/files/:id/replace', upload.single('file'), async (req: any, res)
 
     const existingFile = existingFileRecord[0];
     
+    // Build the complete path including folder structure
+    let remotePath = '/';
+    if (existingFile.folderId) {
+      const { FolderService } = await import('../../services/FolderService');
+      const folderPath = await FolderService.getFolderPath(existingFile.folderId, req.apiUser.userId);
+      if (folderPath.length > 0) {
+        remotePath = '/' + folderPath.map(f => f.name).join('/') + '/';
+      }
+    }
+    
+    // Add filename to complete the path
+    const completeRemotePath = remotePath + newFileName;
+    
     // Replace file in MEGA (delete old, upload new)
     const newMegaFile = await megaService.replaceFile(
       existingFile.megaFileId,
       req.file.buffer,
       newFileName,
-      existingFile.filePath || existingFile.fileName
+      completeRemotePath
     );
 
-    // Update database record
+    // Update database record (preserve folderId and update path if needed)
     const [updatedFile] = await db
       .update(files)
       .set({
@@ -295,7 +308,9 @@ apiRouter.put('/files/:id/replace', upload.single('file'), async (req: any, res)
         fileName: newFileName,
         fileSize: req.file.size.toString(),
         mimeType: req.file.mimetype,
+        filePath: remotePath, // Update with the correct folder path
         uploadedAt: new Date()
+        // folderId stays the same to preserve folder location
       })
       .where(eq(files.id, fileId))
       .returning();
