@@ -1222,12 +1222,12 @@ export function AdminPanelWithSidebar() {
                             <div className="max-w-xs">
                               {log.newValues && (
                                 <div className="text-sm">
-                                  <span className="font-medium">Novo:</span> {log.newValues.length > 50 ? log.newValues.substring(0, 50) + '...' : log.newValues}
+                                  <span className="font-medium">Novo:</span> {typeof log.newValues === 'string' ? (log.newValues.length > 50 ? log.newValues.substring(0, 50) + '...' : log.newValues) : JSON.stringify(log.newValues).length > 50 ? JSON.stringify(log.newValues).substring(0, 50) + '...' : JSON.stringify(log.newValues)}
                                 </div>
                               )}
                               {log.oldValues && (
                                 <div className="text-sm text-gray-500">
-                                  <span className="font-medium">Anterior:</span> {log.oldValues.length > 50 ? log.oldValues.substring(0, 50) + '...' : log.oldValues}
+                                  <span className="font-medium">Anterior:</span> {typeof log.oldValues === 'string' ? (log.oldValues.length > 50 ? log.oldValues.substring(0, 50) + '...' : log.oldValues) : JSON.stringify(log.oldValues).length > 50 ? JSON.stringify(log.oldValues).substring(0, 50) + '...' : JSON.stringify(log.oldValues)}
                                 </div>
                               )}
                             </div>
