@@ -28,6 +28,7 @@ portalRouter.get('/files', FileController.getUserFiles);
 portalRouter.get('/files/:id/download', FileController.downloadFile);
 portalRouter.delete('/files/:id', FileController.deleteFile);
 portalRouter.get('/files/search', FileController.searchFiles);
+portalRouter.put('/files/:id/replace', upload.single('file'), FileController.replaceFile);
 
 // Folder management for end users
 portalRouter.post('/folders', FolderController.createFolder);

@@ -282,6 +282,53 @@ class MegaService {
     }
   }
 
+  // Replace existing file with a new one
+  async replaceFile(oldFileId: string, buffer: Buffer, fileName: string, remotePath: string): Promise<any> {
+    try {
+      const megaStorage = await this.getMegaStorage();
+      
+      // Find and delete the old file
+      const oldFile = await this.findFileById(megaStorage.root, oldFileId);
+      if (oldFile) {
+        console.log('[MEGA] Deleting old file:', oldFile.name);
+        await oldFile.delete();
+      }
+
+      // Upload the new file to the same location
+      console.log('[MEGA] Uploading replacement file to:', remotePath);
+      
+      // Create directory structure if needed
+      const pathParts = remotePath.split('/').filter(part => part);
+      let currentFolder = megaStorage.root;
+      
+      // Navigate/create folders (except the filename)
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const folderName = pathParts[i];
+        let folder = currentFolder.children?.find((child: any) => 
+          child.name === folderName && child.directory
+        );
+        
+        if (!folder) {
+          folder = await currentFolder.mkdir(folderName);
+        }
+        currentFolder = folder;
+      }
+
+      // Upload the new file
+      const newFile = await currentFolder.upload(fileName, buffer).complete;
+      
+      return {
+        id: newFile.nodeId,
+        name: newFile.name,
+        size: newFile.size,
+        url: newFile.link(),
+      };
+    } catch (error) {
+      console.error('Error replacing file in MEGA:', error);
+      throw new Error('Failed to replace file in MEGA');
+    }
+  }
+
   // Advanced upload with multiple files, custom names and folder creation
   async uploadMultipleFiles(uploads: Array<{
     buffer: Buffer;

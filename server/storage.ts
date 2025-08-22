@@ -256,6 +256,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(files).where(eq(files.id, id));
   }
 
+  async updateFile(id: string, fileData: Partial<InsertFile>): Promise<File> {
+    const [updatedFile] = await db
+      .update(files)
+      .set(fileData)
+      .where(eq(files.id, id))
+      .returning();
+    return updatedFile;
+  }
+
   async updateUserStorageUsed(userId: string, storageUsed: string): Promise<void> {
     await db
       .update(users)

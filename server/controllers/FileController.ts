@@ -8,6 +8,10 @@ const uploadSchema = z.object({
   folderId: z.string().optional(),
 });
 
+const replaceSchema = z.object({
+  fileName: z.string().min(1).optional(),
+});
+
 export class FileController {
   static async uploadFile(req: Request, res: Response) {
     try {
@@ -170,6 +174,41 @@ export class FileController {
     } catch (error) {
       console.error('Search error:', error);
       res.status(500).json({ message: 'Failed to search files' });
+    }
+  }
+
+  static async replaceFile(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.claims?.sub;
+      const fileId = req.params.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file provided' });
+      }
+
+      const { fileName } = replaceSchema.parse(req.body);
+
+      const updatedFile = await FileService.replaceFile(
+        fileId,
+        userId,
+        req.file,
+        fileName
+      );
+
+      res.json({
+        message: 'File replaced successfully',
+        file: updatedFile
+      });
+    } catch (error) {
+      console.error('Replace file error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to replace file' });
     }
   }
 }

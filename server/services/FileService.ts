@@ -115,4 +115,48 @@ export class FileService {
       (file.filePath && file.filePath.toLowerCase().includes(query.toLowerCase()))
     );
   }
+
+  static async replaceFile(fileId: string, userId: string, newFile: Express.Multer.File, fileName?: string): Promise<File> {
+    const existingFile = await storage.getFileById(fileId);
+    
+    if (!existingFile || existingFile.userId !== userId) {
+      throw new Error('File not found or unauthorized');
+    }
+
+    // Build the remote path from the existing file
+    const remotePath = existingFile.filePath || existingFile.fileName;
+    const finalFileName = fileName || newFile.originalname;
+
+    // Replace file in MEGA (delete old, upload new)
+    const megaFile = await megaService.replaceFile(
+      existingFile.megaFileId,
+      newFile.buffer,
+      finalFileName,
+      remotePath
+    );
+
+    // Update database record with new file info
+    const updatedFileData = {
+      megaFileId: megaFile.id,
+      fileName: finalFileName,
+      fileSize: newFile.size.toString(),
+      mimeType: newFile.mimetype,
+      uploadedAt: new Date(),
+    };
+
+    const updatedFile = await storage.updateFile(fileId, updatedFileData);
+
+    // Update user storage usage (difference between old and new file sizes)
+    const user = await storage.getUser(userId);
+    if (user) {
+      const currentStorage = BigInt(user.storageUsed || '0');
+      const oldFileSize = BigInt(existingFile.fileSize);
+      const newFileSize = BigInt(newFile.size);
+      const sizeDifference = newFileSize - oldFileSize;
+      const newStorageUsed = (currentStorage + sizeDifference).toString();
+      await storage.updateUserStorageUsed(userId, newStorageUsed);
+    }
+
+    return updatedFile;
+  }
 }

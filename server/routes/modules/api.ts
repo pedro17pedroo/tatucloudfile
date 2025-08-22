@@ -258,6 +258,66 @@ apiRouter.delete('/files/:id', async (req: any, res) => {
   }
 });
 
+// Replace existing file
+apiRouter.put('/files/:id/replace', upload.single('file'), async (req: any, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    const fileId = req.params.id;
+    const newFileName = req.body.fileName || req.file.originalname;
+
+    // Check if file exists and belongs to user
+    const existingFileRecord = await db.select().from(files).where(
+      and(eq(files.id, fileId), eq(files.userId, req.apiUser.userId))
+    );
+
+    if (existingFileRecord.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const existingFile = existingFileRecord[0];
+    
+    // Replace file in MEGA (delete old, upload new)
+    const newMegaFile = await megaService.replaceFile(
+      existingFile.megaFileId,
+      req.file.buffer,
+      newFileName,
+      existingFile.filePath || existingFile.fileName
+    );
+
+    // Update database record
+    const [updatedFile] = await db
+      .update(files)
+      .set({
+        megaFileId: newMegaFile.id,
+        fileName: newFileName,
+        fileSize: req.file.size.toString(),
+        mimeType: req.file.mimetype,
+        uploadedAt: new Date()
+      })
+      .where(eq(files.id, fileId))
+      .returning();
+
+    res.json({
+      success: true,
+      message: 'File replaced successfully',
+      file: {
+        id: updatedFile.id,
+        name: updatedFile.fileName,
+        size: parseInt(updatedFile.fileSize),
+        mimeType: updatedFile.mimeType,
+        uploadedAt: updatedFile.uploadedAt,
+        downloadUrl: `/api/v1/files/${updatedFile.id}/download`
+      }
+    });
+  } catch (error) {
+    console.error('Replace file error:', error);
+    res.status(500).json({ error: 'Failed to replace file' });
+  }
+});
+
 // Create Folder
 apiRouter.post('/folders', async (req: any, res) => {
   try {
