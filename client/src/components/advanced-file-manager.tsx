@@ -1004,7 +1004,7 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                   className="flex items-center space-x-1"
                 >
                   <Download className="h-4 w-4" />
-                  <span>Download</span>
+                  <span>Descarregar</span>
                 </Button>
                 <Button
                   size="sm"
@@ -1056,7 +1056,7 @@ export function AdvancedFileManager({ files, onFileChange, isLoading }: Advanced
                     className="bg-red-600 hover:bg-red-700"
                   >
                     <Download className="h-3 w-3 mr-1" />
-                    Download
+                    Descarregar
                   </Button>
                 </div>
                 <div className="w-full flex-1 border rounded-lg shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">

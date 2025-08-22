@@ -290,7 +290,7 @@ export default function Landing() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="login-password" className="text-sm font-medium text-gray-700">
-                            Password
+                            Senha
                           </Label>
                           <div className="relative">
                             <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -529,12 +529,12 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-tatu-text mb-6 leading-tight">
-              Secure Cloud Storage
-              <span className="text-tatu-green block">File API</span>
+              Armazenamento Seguro na Nuvem
+              <span className="text-tatu-green block">API de Ficheiros</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Connect your applications seamlessly with TATU cloud storage using our RESTful
-              API. Upload, download, and manage files with enterprise-grade security.
+              Conecte suas aplicações perfeitamente com o armazenamento na nuvem TATU usando nossa
+              API RESTful. Carregue, descarregue e gerencie ficheiros com segurança empresarial.
             </p>
             <div className="flex justify-center">
               <Button
@@ -553,10 +553,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-tatu-text mb-4">
-              Everything you need to integrate with TATU
+              Tudo o que precisa para integrar com TATU
             </h2>
             <p className="text-xl text-gray-600">
-              Powerful APIs and developer tools to build amazing file management experiences
+              APIs poderosas e ferramentas de desenvolvimento para criar experiências incríveis de gestão de ficheiros
             </p>
           </div>
 
@@ -565,32 +565,32 @@ export default function Landing() {
               <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Upload className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-tatu-text mb-2">File Upload</h3>
-              <p className="text-gray-600">Upload files of any size with resumable uploads and progress tracking</p>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">Carregamento de Ficheiros</h3>
+              <p className="text-gray-600">Carregue ficheiros de qualquer tamanho com uploads retomáveis e rastreamento de progresso</p>
             </div>
 
             <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
               <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Download className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-tatu-text mb-2">File Download</h3>
-              <p className="text-gray-600">Secure file downloads with temporary links and access controls</p>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">Descarregamento de Ficheiros</h3>
+              <p className="text-gray-600">Descarregamentos seguros de ficheiros com links temporários e controlos de acesso</p>
             </div>
 
             <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
               <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-tatu-text mb-2">File Search</h3>
-              <p className="text-gray-600">Advanced search capabilities across your entire file library</p>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">Pesquisa de Ficheiros</h3>
+              <p className="text-gray-600">Capacidades de pesquisa avançadas em toda a sua biblioteca de ficheiros</p>
             </div>
 
             <div className="text-center p-6 rounded-xl border border-gray-200 hover:border-tatu-green/30 hover:shadow-lg transition-all">
               <div className="bg-tatu-green/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="h-8 w-8 text-tatu-green" />
               </div>
-              <h3 className="text-xl font-semibold text-tatu-text mb-2">Enterprise Security</h3>
-              <p className="text-gray-600">End-to-end encryption with enterprise-grade security</p>
+              <h3 className="text-xl font-semibold text-tatu-text mb-2">Segurança Empresarial</h3>
+              <p className="text-gray-600">Encriptação de ponta a ponta com segurança de nível empresarial</p>
             </div>
           </div>
         </div>
@@ -599,15 +599,15 @@ export default function Landing() {
       <section className="py-20 bg-tatu-green">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to get started?
+            Pronto para começar?
           </h2>
-          <p className="text-xl text-green-100 mb-8">Join thousands of developers already building with our TATU File Manager API</p>
+          <p className="text-xl text-green-100 mb-8">Junte-se a milhares de desenvolvedores que já constroem com nossa API do TATU File Manager</p>
           <Button
             onClick={() => navigate("/register")}
             className="bg-white text-mega-green hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
             data-testid="cta-register-button"
           >
-            Create Free Account
+            Criar Conta Gratuita
           </Button>
         </div>
       </section>
@@ -621,28 +621,28 @@ export default function Landing() {
                 <span className="text-xl font-bold">TATU File Manager</span>
               </div>
               <p className="text-gray-400 max-w-md">
-                The most secure and reliable way to integrate MEGA cloud storage into your applications.
+                A forma mais segura e confiável de integrar armazenamento na nuvem MEGA nas suas aplicações.
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Product</h3>
+              <h3 className="text-lg font-semibold mb-4">Produto</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">API Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Examples</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Documentação da API</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Preços</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Exemplos</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Support</h3>
+              <h3 className="text-lg font-semibold mb-4">Suporte</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Status</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Centro de Ajuda</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contactar-nos</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Estado</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>© 2025 TATU File Manager. All rights reserved.</p>
+            <p>© 2025 TATU File Manager. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

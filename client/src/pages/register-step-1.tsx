@@ -27,7 +27,7 @@ export default function RegisterStep1({ selectedPlan, onPlanSelect, onNext }: Re
 
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price);
-    return numPrice === 0 ? "Grátis" : `€${numPrice}/mês`;
+    return numPrice === 0 ? "Grátis" : `${numPrice.toLocaleString('pt-AO')} Kz/mês`;
   };
 
   const formatStorage = (bytes: string) => {

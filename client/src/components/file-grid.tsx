@@ -148,9 +148,9 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
       <Card data-testid="file-grid-header">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-tatu-text" data-testid="files-title">Your Files</h2>
+            <h2 className="text-2xl font-bold text-tatu-text" data-testid="files-title">Os Seus Ficheiros</h2>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span data-testid="files-count">{filteredFiles.length} files</span>
+              <span data-testid="files-count">{filteredFiles.length} ficheiros</span>
             </div>
           </div>
           
@@ -159,7 +159,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search files..."
+                  placeholder="Pesquisar ficheiros..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -174,7 +174,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                   className="bg-tatu-accent hover:bg-blue-600 text-white"
                   data-testid="generate-api-key-button"
                 >
-                  Generate API Key
+                  Gerar Chave API
                 </Button>
               )}
             </div>
@@ -245,7 +245,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                           size="sm"
                           variant="ghost"
                           className="text-mega-accent hover:text-blue-700 h-8 w-8 p-0"
-                          title="Download"
+                          title="Descarregar"
                           data-testid={`download-file-${file.id}`}
                         >
                           <Download className="h-4 w-4" />
@@ -254,7 +254,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                           size="sm"
                           variant="ghost"
                           className="text-gray-500 hover:text-gray-700 h-8 w-8 p-0"
-                          title="Share"
+                          title="Partilhar"
                           data-testid={`share-file-${file.id}`}
                         >
                           <Share2 className="h-4 w-4" />
@@ -264,7 +264,7 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
                           variant="ghost"
                           onClick={() => setDeleteFileId(file.id)}
                           className="text-red-500 hover:text-red-700 h-8 w-8 p-0"
-                          title="Delete"
+                          title="Eliminar"
                           data-testid={`delete-file-${file.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -333,9 +333,9 @@ export function FileGrid({ files, onFileDeleted, isLoading }: FileGridProps) {
       <AlertDialog open={!!deleteFileId} onOpenChange={() => setDeleteFileId(null)}>
         <AlertDialogContent data-testid="delete-confirmation-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogTitle>Eliminar Ficheiro</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this file? This action cannot be undone.
+Tem a certeza que deseja eliminar este ficheiro? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

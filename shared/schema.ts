@@ -214,7 +214,7 @@ export const payments = pgTable("payments", {
   subscriptionId: varchar("subscription_id").references(() => userSubscriptions.id),
   planId: varchar("plan_id").references(() => plans.id).notNull(),
   amount: numeric("amount").notNull(),
-  currency: varchar("currency").default('EUR'),
+  currency: varchar("currency").default('AOA'),
   status: varchar("status").notNull().default('pending'), // pending, approved, rejected, completed
   paymentMethod: varchar("payment_method").notNull(), // bank_transfer, stripe, other
   transactionId: varchar("transaction_id"),

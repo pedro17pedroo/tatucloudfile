@@ -14,8 +14,8 @@ export class BillingController {
       const payments = [
         {
           id: 'pay_1',
-          amount: '29.99',
-          currency: 'EUR',
+          amount: '10000',
+          currency: 'AOA',
           status: 'paid' as const,
           date: '2024-01-15',
           description: 'Plano Pro - Janeiro 2024',
@@ -24,8 +24,8 @@ export class BillingController {
         },
         {
           id: 'pay_2',
-          amount: '29.99',
-          currency: 'EUR',
+          amount: '10000',
+          currency: 'AOA',
           status: 'paid' as const,
           date: '2023-12-15',
           description: 'Plano Pro - Dezembro 2023',
@@ -34,11 +34,11 @@ export class BillingController {
         },
         {
           id: 'pay_3',
-          amount: '9.99',
-          currency: 'EUR',
+          amount: '0',
+          currency: 'AOA',
           status: 'paid' as const,
           date: '2023-11-15',
-          description: 'Plano Basic - Novembro 2023',
+          description: 'Plano Básico - Novembro 2023',
           receiptUrl: '/api/billing/receipt/pay_3',
           invoiceNumber: 'INV-2023-011'
         }
@@ -61,8 +61,8 @@ export class BillingController {
 
       // In a real implementation, this would calculate from actual payment data
       const summary = {
-        totalSpent: '€69,97',
-        currentMonth: '€29,99',
+        totalSpent: '20.000 Kz',
+        currentMonth: '10.000 Kz',
         nextPayment: '15 Fev 2024'
       };
 

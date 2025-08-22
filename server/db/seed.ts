@@ -15,7 +15,7 @@ export async function seedDatabase() {
       await db.insert(plans).values([
         {
           id: 'basic',
-          name: 'Basic',
+          name: 'Básico',
           storageLimit: '2147483648', // 2GB
           pricePerMonth: '0',
           apiCallsPerHour: 100,
@@ -24,14 +24,14 @@ export async function seedDatabase() {
           id: 'pro',
           name: 'Pro',
           storageLimit: '5368709120', // 5GB
-          pricePerMonth: '9.99',
+          pricePerMonth: '10000',
           apiCallsPerHour: 1000,
         },
         {
           id: 'premium',
           name: 'Premium',
           storageLimit: '10737418240', // 10GB
-          pricePerMonth: '19.99',
+          pricePerMonth: '20000',
           apiCallsPerHour: 5000,
         },
       ]);

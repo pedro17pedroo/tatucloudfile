@@ -124,6 +124,10 @@ export default function Billing() {
   };
 
   const formatAmount = (amount: string, currency: string) => {
+    if (currency.toUpperCase() === 'AOA') {
+      const numAmount = parseFloat(amount);
+      return `${numAmount.toLocaleString('pt-AO')} Kz`;
+    }
     return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
       currency: currency.toUpperCase(),
