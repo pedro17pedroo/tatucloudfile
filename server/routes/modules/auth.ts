@@ -4,6 +4,7 @@ import { RegistrationController } from '../../controllers/RegistrationController
 import { OtpController } from '../../controllers/OtpController';
 import { ProfileController } from '../../controllers/ProfileController';
 import { AdminController } from '../../controllers/AdminController';
+import { PasswordResetController } from '../../controllers/PasswordResetController';
 import { db } from '../../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -20,6 +21,11 @@ authRouter.get('/user', AuthController.getUser);
 // OTP routes
 authRouter.post('/send-otp', OtpController.sendOtp);
 authRouter.post('/verify-otp', OtpController.verifyOtp);
+
+// Password reset routes
+authRouter.post('/forgot-password', PasswordResetController.forgotPassword);
+authRouter.post('/verify-reset-otp', PasswordResetController.verifyResetOtp);
+authRouter.post('/reset-password', PasswordResetController.resetPassword);
 
 // Profile management routes
 authRouter.put('/profile', ProfileController.updateProfile);
