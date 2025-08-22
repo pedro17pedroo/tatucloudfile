@@ -51,6 +51,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
     selectedFiles?: File[];
     filePath?: string;
     folderPath?: string;
+    fileName?: string;
   }>({
     method: 'GET',
     endpoint: '/files',
@@ -174,11 +175,14 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
       };
 
       // Handle file upload differently
-      if (testEndpoint.endpoint === '/files/upload' && testEndpoint.selectedFile) {
+      if ((testEndpoint.endpoint === '/files/upload' || testEndpoint.endpoint === '/files/{id}/replace') && testEndpoint.selectedFile) {
         const formData = new FormData();
         formData.append('file', testEndpoint.selectedFile);
-        if (testEndpoint.filePath) {
+        if (testEndpoint.endpoint === '/files/upload' && testEndpoint.filePath) {
           formData.append('path', testEndpoint.filePath);
+        }
+        if (testEndpoint.endpoint === '/files/{id}/replace' && testEndpoint.fileName) {
+          formData.append('fileName', testEndpoint.fileName);
         }
         requestOptions.body = formData;
         // Remove Content-Type header for FormData (browser will set it automatically)
@@ -241,7 +245,7 @@ export default function UnifiedDeveloperPortal({ user }: UnifiedDeveloperPortalP
       });
       
       // Invalidate file cache if upload was successful
-      if (response.ok && (testEndpoint.endpoint === '/files/upload' || testEndpoint.endpoint === '/files/upload-multiple')) {
+      if (response.ok && (testEndpoint.endpoint === '/files/upload' || testEndpoint.endpoint === '/files/upload-multiple' || testEndpoint.endpoint === '/files/{id}/replace')) {
         queryClient.invalidateQueries({ queryKey: ["/api/portal/files"] });
       }
     } catch (error: any) {
